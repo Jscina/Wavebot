@@ -25,16 +25,17 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 # Define the origin box
-center_x, center_y = int(640/2), int(480/2)
+center_x, center_y = int(640 / 2), int(480 / 2)
 box_size = 100
-box_x1 = center_x - box_size//2
-box_y1 = center_y - box_size//2
-box_x2 = center_x + box_size//2
-box_y2 = center_y + box_size//2
+box_x1 = center_x - box_size // 2
+box_y1 = center_y - box_size // 2
+box_x2 = center_x + box_size // 2
+box_y2 = center_y + box_size // 2
 
 # Define a shared variable for the x coordinate
 x_lock = threading.Lock()
 shared_x = 0
+
 
 # Define a function to control the pan servo
 def pan_servo(angle):
@@ -42,10 +43,12 @@ def pan_servo(angle):
     with x_lock:
         hat.channels[pan_channel].duty_cycle = int(pulse * 65535 / 1000000)
 
+
 # Define a function to control the tilt servo
 def tilt_servo(angle):
     pulse = int(np.interp(angle, [-90, 90], [1100, 1900]))
     hat.channels[tilt_channel].duty_cycle = int(pulse * 65535 / 1000000)
+
 
 # Define a function for the face tracking thread
 def face_track():
@@ -73,9 +76,12 @@ def face_track():
                 # Calculate the x and y coordinates relative to the origin (center of the grid)
                 x = face_centerpoint_x - center_x
                 y = center_y - face_centerpoint_y
-                
+
                 # Check if the center point is inside the box around the origin
-                if box_x1 <= face_centerpoint_x <= box_x2 and box_y1 <= face_centerpoint_y <= box_y2:
+                if (
+                    box_x1 <= face_centerpoint_x <= box_x2
+                    and box_y1 <= face_centerpoint_y <= box_y2
+                ):
                     text = f"x = {x}, y = {y} (inside box)"
                 else:
                     text = f"x = {x}, y = {y}"
@@ -96,6 +102,7 @@ def face_track():
         if cv2.waitKey(1) == ord("q"):
             break
 
-#Clean up
+
+# Clean up
 cap.release()
 cv2.destroyAllWindows()
