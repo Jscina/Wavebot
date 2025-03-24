@@ -125,14 +125,14 @@ You can find documentation for the main components:
 
 ## 🧠 Servo Channel Mapping
 
-| Servo Channel | Description                |
-| ------------- | -------------------------- |
-| 0             | Left Eye – Horizontal      |
-| 1             | Left Eye – Vertical        |
-| 2             | Right Eye – Horizontal     |
-| 3             | Right Eye – Vertical       |
-| 8             | Extra servo (configurable) |
-| 9             | Extra servo (configurable) |
+| Servo Channel | Description            |
+| ------------- | ---------------------- |
+| 0             | Left Eye – Horizontal  |
+| 1             | Left Eye – Vertical    |
+| 2             | Right Eye – Horizontal |
+| 3             | Right Eye – Vertical   |
+| 8             | Neck - Horizontal      |
+| 9             | Neck - Vertical        |
 
 All channels are defined as Enums in `config.py`.
 
