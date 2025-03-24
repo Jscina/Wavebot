@@ -1,8 +1,7 @@
 import logging
 from config import EYE_CHANNELS, EXTRA_CHANNELS
 
-logging.basicConfig(level=logging.INFO)
-LOG = logging.getLogger(__name__)
+log = logging.getLogger(__name__)
 
 HARDWARE_AVAILABLE: bool = False
 
@@ -18,11 +17,11 @@ try:
 
     kit = ServoKit(channels=16)
     HARDWARE_AVAILABLE = True
-    LOG.info("Successfully initialized PCA9685 servo hardware.")
+    log.info("Successfully initialized PCA9685 servo hardware.")
 
 except (ImportError, OSError, AttributeError) as exc:
-    LOG.warning("Hardware not available: %s", exc)
-    LOG.warning("Falling back to dummy servo functions (no real servo movement).")
+    log.warning("Hardware not available: %s", exc)
+    log.warning("Falling back to dummy servo functions (no real servo movement).")
 
 
 def set_servo_angle(channel: int, angle: float) -> None:
@@ -32,7 +31,7 @@ def set_servo_angle(channel: int, angle: float) -> None:
     If running on a platform without hardware,
     it only logs the call instead of actually moving a servo.
     """
-    LOG.info("set_servo_angle(channel=%d, angle=%.2f)", channel, angle)
+    log.info("set_servo_angle(channel=%d, angle=%.2f)", channel, angle)
 
     if not HARDWARE_AVAILABLE:
         return
@@ -55,7 +54,7 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
 
     If hardware isn't available, this only logs calls.
     """
-    LOG.info(
+    log.info(
         "update_servos(x_val=%d, y_val=%d, width=%d, height=%d)",
         x_val,
         y_val,
@@ -88,7 +87,7 @@ def center_servos() -> None:
 
     If hardware isn't available, this only logs calls.
     """
-    LOG.info("center_servos() called")
+    log.info("center_servos() called")
 
     if not HARDWARE_AVAILABLE:
         return

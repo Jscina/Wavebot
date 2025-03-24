@@ -3,9 +3,14 @@ import numpy as np
 from typing import Callable
 from servos import update_servos
 from config import FRAME_WIDTH, FRAME_HEIGHT
+from pathlib import Path
+
+base_model_path = Path(__file__).parent / "model"
+caffe_model_path = base_model_path / "deploy.prototxt"
+caffe_weights_path = base_model_path / "res10_300x300_ssd_iter_140000.caffemodel"
 
 model = cv2.dnn.readNetFromCaffe(
-    "model/deploy.prototxt", "model/res10_300x300_ssd_iter_140000.caffemodel"
+    caffe_model_path.as_posix(), caffe_weights_path.as_posix()
 )
 
 FaceBoxList = list[tuple[int, int, int, int]]
