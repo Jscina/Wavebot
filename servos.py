@@ -1,33 +1,72 @@
-import board
-import busio
-import adafruit_pca9685
-from adafruit_servokit import ServoKit
+import logging
 from config import EYE_CHANNELS, EXTRA_CHANNELS
 
-kit = ServoKit(channels=16)
-i2c = busio.I2C(board.SCL, board.SDA)
-pwm = adafruit_pca9685.PCA9685(i2c)
-pwm.frequency = 60
+logging.basicConfig(level=logging.INFO)
+LOG = logging.getLogger(__name__)
+
+HARDWARE_AVAILABLE: bool = False
+
+try:
+    import board
+    import busio
+    import adafruit_pca9685
+    from adafruit_servokit import ServoKit
+
+    i2c = busio.I2C(board.SCL, board.SDA)
+    pwm = adafruit_pca9685.PCA9685(i2c)
+    pwm.frequency = 60
+
+    kit = ServoKit(channels=16)
+    HARDWARE_AVAILABLE = True
+    LOG.info("Successfully initialized PCA9685 servo hardware.")
+
+except (ImportError, OSError, AttributeError) as exc:
+    LOG.warning("Hardware not available: %s", exc)
+    LOG.warning("Falling back to dummy servo functions (no real servo movement).")
 
 
 def set_servo_angle(channel: int, angle: float) -> None:
     """
-    Converts a given angle into a PWM duty cycle and applies it to the specified channel.
+    Sets the servo at 'channel' to 'angle' degrees.
+
+    If running on a platform without hardware,
+    it only logs the call instead of actually moving a servo.
     """
-    pulse_length = (angle * 1000 // 180) + 1000
-    duty_cycle = int(pulse_length * 65535 / (1 / pwm.frequency) / 1_000_000)
+    LOG.info("set_servo_angle(channel=%d, angle=%.2f)", channel, angle)
+
+    if not HARDWARE_AVAILABLE:
+        return
+
+    pulse_length: float = (angle * 1000 // 180) + 1000
+    duty_cycle: int = int(pulse_length * 65535 / (1 / pwm.frequency) / 1_000_000)
     pwm.channels[channel].duty_cycle = duty_cycle
 
 
 def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     """
     Moves the eye servos based on face coordinates.
-    :param x_val: Horizontal offset of face center.
-    :param y_val: Vertical offset of face center.
-    :param width: Frame width.
-    :param height: Frame height.
+
+    :param x_val: Horizontal offset of face center from the frame's center.
+                  (Negative => left, Positive => right)
+    :param y_val: Vertical offset of face center from the frame's center.
+                  (Negative => below center, Positive => above center)
+    :param width: Frame width in pixels.
+    :param height: Frame height in pixels.
+
+    If hardware isn't available, this only logs calls.
     """
-    angle_diff: float = x_val * 50 / width
+    LOG.info(
+        "update_servos(x_val=%d, y_val=%d, width=%d, height=%d)",
+        x_val,
+        y_val,
+        width,
+        height,
+    )
+
+    if not HARDWARE_AVAILABLE:
+        return
+
+    angle_diff: float = x_val * 50.0 / width
 
     if x_val < 0:
         set_servo_angle(EYE_CHANNELS["left_x"], 125 - angle_diff)
@@ -46,7 +85,15 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
 def center_servos() -> None:
     """
     Resets all servo motors to their default center positions.
+
+    If hardware isn't available, this only logs calls.
     """
+    LOG.info("center_servos() called")
+
+    if not HARDWARE_AVAILABLE:
+        return
+
+    # Real servo logic from your original code:
     kit.servo[EYE_CHANNELS["left_x"]].angle = 125
     kit.servo[EYE_CHANNELS["left_y"]].angle = 120
     kit.servo[EYE_CHANNELS["right_x"]].angle = 130
