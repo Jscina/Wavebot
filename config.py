@@ -1,7 +1,19 @@
+from enum import IntEnum
+
+
+class EyeChannel(IntEnum):
+    LEFT_X = 0
+    LEFT_Y = 1
+    RIGHT_X = 2
+    RIGHT_Y = 3
+
+
+class ExtraChannel(IntEnum):
+    EXTRA_1 = 8
+    EXTRA_2 = 9
+
+
 FRAME_WIDTH = 320
 FRAME_HEIGHT = 240
-
-EYE_CHANNELS = {"left_x": 0, "left_y": 1, "right_x": 2, "right_y": 3}
-EXTRA_CHANNELS = {"extra_1": 8, "extra_2": 9}
 
 USE_USB_CAMERA = False

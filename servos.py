@@ -1,9 +1,20 @@
 import logging
-from config import EYE_CHANNELS, EXTRA_CHANNELS
+from typing import Dict
+from config import EyeChannel, ExtraChannel
 
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 HARDWARE_AVAILABLE: bool = False
+
+servo_positions: Dict[int, float] = {
+    EyeChannel.LEFT_X.value: 125.0,
+    EyeChannel.LEFT_Y.value: 120.0,
+    EyeChannel.RIGHT_X.value: 130.0,
+    EyeChannel.RIGHT_Y.value: 110.0,
+    ExtraChannel.EXTRA_1.value: 74.0,
+    ExtraChannel.EXTRA_2.value: 20.0,
+}
 
 try:
     import board
@@ -24,35 +35,41 @@ except (ImportError, OSError, AttributeError) as exc:
     log.warning("Falling back to dummy servo functions (no real servo movement).")
 
 
-def set_servo_angle(channel: int, angle: float) -> None:
+def set_servo_angle(channel: EyeChannel | ExtraChannel, angle: float) -> None:
     """
-    Sets the servo at 'channel' to 'angle' degrees.
+    Sets the servo (eye or extra) at 'channel' to 'angle' degrees.
 
-    If running on a platform without hardware,
-    it only logs the call instead of actually moving a servo.
+    Logs which servo is being moved, old → new angles, and whether hardware is used.
+    Updates an in-memory dictionary to allow simulation or replay if hardware is absent.
     """
-    log.info("set_servo_angle(channel=%d, angle=%.2f)", channel, angle)
+    old_angle = servo_positions.get(channel.value, 0.0)
+
+    servo_type = channel.__class__.__name__
+
+    log.info(
+        "set_servo_angle(%s.%s): old=%.2f → new=%.2f (HW=%s)",
+        servo_type,
+        channel.name,
+        old_angle,
+        angle,
+        HARDWARE_AVAILABLE,
+    )
+
+    servo_positions[channel.value] = angle
 
     if not HARDWARE_AVAILABLE:
         return
 
     pulse_length: float = (angle * 1000 // 180) + 1000
     duty_cycle: int = int(pulse_length * 65535 / (1 / pwm.frequency) / 1_000_000)
-    pwm.channels[channel].duty_cycle = duty_cycle
+    pwm.channels[channel.value].duty_cycle = duty_cycle
 
 
 def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     """
     Moves the eye servos based on face coordinates.
 
-    :param x_val: Horizontal offset of face center from the frame's center.
-                  (Negative => left, Positive => right)
-    :param y_val: Vertical offset of face center from the frame's center.
-                  (Negative => below center, Positive => above center)
-    :param width: Frame width in pixels.
-    :param height: Frame height in pixels.
-
-    If hardware isn't available, this only logs calls.
+    Logs the (x_val, y_val) offset and updates the servo angles accordingly.
     """
     log.info(
         "update_servos(x_val=%d, y_val=%d, width=%d, height=%d)",
@@ -62,40 +79,34 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
         height,
     )
 
-    if not HARDWARE_AVAILABLE:
-        return
-
     angle_diff: float = x_val * 50.0 / width
 
     if x_val < 0:
-        set_servo_angle(EYE_CHANNELS["left_x"], 125 - angle_diff)
-        set_servo_angle(EYE_CHANNELS["right_x"], 130 - angle_diff)
+        set_servo_angle(EyeChannel.LEFT_X, 125.0 - angle_diff)
+        set_servo_angle(EyeChannel.RIGHT_X, 130.0 - angle_diff)
     elif x_val > 0:
-        set_servo_angle(EYE_CHANNELS["left_x"], 125 + angle_diff)
-        set_servo_angle(EYE_CHANNELS["right_x"], 130 + angle_diff)
+        set_servo_angle(EyeChannel.LEFT_X, 125.0 + angle_diff)
+        set_servo_angle(EyeChannel.RIGHT_X, 130.0 + angle_diff)
 
-    ley_angle: float = 110 - (y_val * (120 - 300) / height)
-    rey_angle: float = 110 + (y_val * (110 - 300) / height)
+    ley_angle: float = 110.0 - (y_val * (120.0 - 300.0) / height)
+    rey_angle: float = 110.0 + (y_val * (110.0 - 300.0) / height)
 
-    set_servo_angle(EYE_CHANNELS["left_y"], ley_angle)
-    set_servo_angle(EYE_CHANNELS["right_y"], rey_angle)
+    set_servo_angle(EyeChannel.LEFT_Y, ley_angle)
+    set_servo_angle(EyeChannel.RIGHT_Y, rey_angle)
 
 
 def center_servos() -> None:
     """
     Resets all servo motors to their default center positions.
 
-    If hardware isn't available, this only logs calls.
+    Logs the action, then calls set_servo_angle on each channel.
     """
-    log.info("center_servos() called")
+    log.info("center_servos() called (HW=%s)", HARDWARE_AVAILABLE)
 
-    if not HARDWARE_AVAILABLE:
-        return
+    set_servo_angle(EyeChannel.LEFT_X, 125.0)
+    set_servo_angle(EyeChannel.LEFT_Y, 120.0)
+    set_servo_angle(EyeChannel.RIGHT_X, 130.0)
+    set_servo_angle(EyeChannel.RIGHT_Y, 110.0)
 
-    # Real servo logic from your original code:
-    kit.servo[EYE_CHANNELS["left_x"]].angle = 125
-    kit.servo[EYE_CHANNELS["left_y"]].angle = 120
-    kit.servo[EYE_CHANNELS["right_x"]].angle = 130
-    kit.servo[EYE_CHANNELS["right_y"]].angle = 110
-    kit.servo[EXTRA_CHANNELS["extra_1"]].angle = 74
-    kit.servo[EXTRA_CHANNELS["extra_2"]].angle = 20
+    set_servo_angle(ExtraChannel.EXTRA_1, 74.0)
+    set_servo_angle(ExtraChannel.EXTRA_2, 20.0)
