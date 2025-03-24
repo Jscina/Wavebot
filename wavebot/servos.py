@@ -1,10 +1,9 @@
-from typing import Dict
 from .config import EyesChannel, ExtraChannel, logger
 
 
 HARDWARE_AVAILABLE: bool = False
 
-servo_positions: Dict[int, float] = {
+servo_positions: dict[int, float] = {
     EyesChannel.LEFT_X.value: 125.0,
     EyesChannel.LEFT_Y.value: 120.0,
     EyesChannel.RIGHT_X.value: 130.0,
