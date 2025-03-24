@@ -1,8 +1,13 @@
 import cv2
 import time
-from camera import camera_stream
-from servos import center_servos
-from vision import detect_faces, draw_faces, draw_quadrants
+from wavebot import (
+    camera_stream,
+    detect_faces,
+    draw_faces,
+    draw_quadrants,
+    center_servos,
+    logger,
+)
 
 
 def main() -> None:
@@ -30,6 +35,7 @@ def main() -> None:
 
         # If no face for 5s, recenter servos
         if not face_detected and (time.time() - last_face_time > 5):
+            logger.info("No face detected for 5s, recentering servos")
             center_servos()
             last_face_time = time.time()
 

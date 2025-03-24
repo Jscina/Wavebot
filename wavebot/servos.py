@@ -1,17 +1,14 @@
-import logging
 from typing import Dict
-from config import EyeChannel, ExtraChannel
+from config import EyesChannel, ExtraChannel, logger
 
-logging.basicConfig(level=logging.INFO)
-log = logging.getLogger(__name__)
 
 HARDWARE_AVAILABLE: bool = False
 
 servo_positions: Dict[int, float] = {
-    EyeChannel.LEFT_X.value: 125.0,
-    EyeChannel.LEFT_Y.value: 120.0,
-    EyeChannel.RIGHT_X.value: 130.0,
-    EyeChannel.RIGHT_Y.value: 110.0,
+    EyesChannel.LEFT_X.value: 125.0,
+    EyesChannel.LEFT_Y.value: 120.0,
+    EyesChannel.RIGHT_X.value: 130.0,
+    EyesChannel.RIGHT_Y.value: 110.0,
     ExtraChannel.EXTRA_1.value: 74.0,
     ExtraChannel.EXTRA_2.value: 20.0,
 }
@@ -28,14 +25,14 @@ try:
 
     kit = ServoKit(channels=16)
     HARDWARE_AVAILABLE = True
-    log.info("Successfully initialized PCA9685 servo hardware.")
+    logger.info("Successfully initialized PCA9685 servo hardware.")
 
 except (ImportError, OSError, AttributeError) as exc:
-    log.warning("Hardware not available: %s", exc)
-    log.warning("Falling back to dummy servo functions (no real servo movement).")
+    logger.warning("Hardware not available: %s", exc)
+    logger.warning("Falling back to dummy servo functions (no real servo movement).")
 
 
-def set_servo_angle(channel: EyeChannel | ExtraChannel, angle: float) -> None:
+def set_servo_angle(channel: EyesChannel | ExtraChannel, angle: float) -> None:
     """
     Sets the servo (eye or extra) at 'channel' to 'angle' degrees.
 
@@ -46,7 +43,7 @@ def set_servo_angle(channel: EyeChannel | ExtraChannel, angle: float) -> None:
 
     servo_type = channel.__class__.__name__
 
-    log.info(
+    logger.info(
         "set_servo_angle(%s.%s): old=%.2f → new=%.2f (HW=%s)",
         servo_type,
         channel.name,
@@ -71,7 +68,7 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
 
     Logs the (x_val, y_val) offset and updates the servo angles accordingly.
     """
-    log.info(
+    logger.info(
         "update_servos(x_val=%d, y_val=%d, width=%d, height=%d)",
         x_val,
         y_val,
@@ -82,17 +79,17 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     angle_diff: float = x_val * 50.0 / width
 
     if x_val < 0:
-        set_servo_angle(EyeChannel.LEFT_X, 125.0 - angle_diff)
-        set_servo_angle(EyeChannel.RIGHT_X, 130.0 - angle_diff)
+        set_servo_angle(EyesChannel.LEFT_X, 125.0 - angle_diff)
+        set_servo_angle(EyesChannel.RIGHT_X, 130.0 - angle_diff)
     elif x_val > 0:
-        set_servo_angle(EyeChannel.LEFT_X, 125.0 + angle_diff)
-        set_servo_angle(EyeChannel.RIGHT_X, 130.0 + angle_diff)
+        set_servo_angle(EyesChannel.LEFT_X, 125.0 + angle_diff)
+        set_servo_angle(EyesChannel.RIGHT_X, 130.0 + angle_diff)
 
     ley_angle: float = 110.0 - (y_val * (120.0 - 300.0) / height)
     rey_angle: float = 110.0 + (y_val * (110.0 - 300.0) / height)
 
-    set_servo_angle(EyeChannel.LEFT_Y, ley_angle)
-    set_servo_angle(EyeChannel.RIGHT_Y, rey_angle)
+    set_servo_angle(EyesChannel.LEFT_Y, ley_angle)
+    set_servo_angle(EyesChannel.RIGHT_Y, rey_angle)
 
 
 def center_servos() -> None:
@@ -101,12 +98,12 @@ def center_servos() -> None:
 
     Logs the action, then calls set_servo_angle on each channel.
     """
-    log.info("center_servos() called (HW=%s)", HARDWARE_AVAILABLE)
+    logger.info("center_servos() called (HW=%s)", HARDWARE_AVAILABLE)
 
-    set_servo_angle(EyeChannel.LEFT_X, 125.0)
-    set_servo_angle(EyeChannel.LEFT_Y, 120.0)
-    set_servo_angle(EyeChannel.RIGHT_X, 130.0)
-    set_servo_angle(EyeChannel.RIGHT_Y, 110.0)
+    set_servo_angle(EyesChannel.LEFT_X, 125.0)
+    set_servo_angle(EyesChannel.LEFT_Y, 120.0)
+    set_servo_angle(EyesChannel.RIGHT_X, 130.0)
+    set_servo_angle(EyesChannel.RIGHT_Y, 110.0)
 
     set_servo_angle(ExtraChannel.EXTRA_1, 74.0)
     set_servo_angle(ExtraChannel.EXTRA_2, 20.0)
