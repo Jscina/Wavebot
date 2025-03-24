@@ -24,10 +24,10 @@ wavebot/
 │   ├── camera.py            # Camera setup (PiCamera or USB camera)
 │   ├── config.py            # Constants (servo channels, frame size, camera settings)
 │   ├── servos.py            # Servo motor control logic
-│   ├── vision.py            # Face detection & rendering logic
-│   └── model/               # Face detection model files
-│       ├── deploy.prototxt      # Face detection model config
-│       └── res10_300x300...     # Pre-trained Caffe model
+│   └── vision.py            # Face detection & rendering logic
+├── model/                   # Face detection model files
+│   ├── deploy.prototxt      # Face detection model config
+│   └── res10_300x300...     # Pre-trained Caffe model
 └── README.md                # You're reading it :)
 ```
 
@@ -96,14 +96,13 @@ open docs/wavebot/index.html      # macOS
 start docs/wavebot/index.html     # Windows
 ```
 
-### Documentation Structure
+### Documentation
 
 The generated documentation includes:
 
 - **API Reference**: Detailed documentation of all modules, classes, and functions
 - **Module Overview**: High-level description of each module's purpose
 - **Function Signatures**: Parameters, return types, and descriptions
-- **Class Hierarchies**: Inheritance and relationship diagrams
 
 You can find documentation for the main components:
 
@@ -119,7 +118,7 @@ You can find documentation for the main components:
 - The camera captures a live video feed (either from PiCamera or USB camera).
 - The DNN face detection model finds faces in the frame.
 - Based on the face's position, eye servos (X/Y for each eye) move to track it.
-- If no face is detected for 5 seconds, the eyes reset to center.
+- The eyes reset to center if no face is detected for 5 seconds.
 - The system will automatically detect if hardware is available and fall back to a simulation mode if not.
 
 ---
@@ -187,7 +186,7 @@ You can adjust the following settings in `wavebot/config.py`:
 
 ## 📸 Model Info
 
-The face detection model used is a **Caffe-based SSD (Single Shot Detector)** trained on ResNet10.
+The face detection model is a **Caffe-based SSD (Single Shot Detector)** trained on ResNet10.
 
 Files are in the `wavebot/model` folder:
 
