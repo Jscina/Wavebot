@@ -18,13 +18,16 @@ This project uses:
 wavebot/
 │
 ├── main.py                  # Main application entry point
-├── config.py                # Constants (servo channels, frame size, camera settings)
-├── servos.py                # Servo motor control logic
-├── vision.py                # Face detection & rendering logic
-├── camera.py                # Camera setup (PiCamera or USB camera)
-├── model/
-│   ├── deploy.prototxt      # Face detection model config
-│   └── res10_300x300...     # Pre-trained Caffe model
+├── pyproject.toml           # Project dependencies and metadata
+├── wavebot/
+│   ├── __init__.py          # Package exports
+│   ├── camera.py            # Camera setup (PiCamera or USB camera)
+│   ├── config.py            # Constants (servo channels, frame size, camera settings)
+│   ├── servos.py            # Servo motor control logic
+│   ├── vision.py            # Face detection & rendering logic
+│   └── model/               # Face detection model files
+│       ├── deploy.prototxt      # Face detection model config
+│       └── res10_300x300...     # Pre-trained Caffe model
 └── README.md                # You're reading it :)
 ```
 
@@ -61,9 +64,53 @@ uv python install 3.11
 ## 🚀 Running the Program
 
 ```bash
+# Install dependencies
 uv sync
+
+# Run the program
 uv run main.py
 ```
+
+## 📚 Documentation
+
+The project is documented using pdoc3, which creates HTML documentation from docstrings in the code.
+
+### Generating Documentation
+
+```bash
+# Generate HTML documentation
+uv run pdoc --html wavebot -o docs/
+```
+
+### Viewing Documentation
+
+After generating the documentation, you can view it by opening the HTML files in your browser:
+
+```bash
+# If you have python installed
+python -m http.server -d docs
+
+# Or simply open the file directly
+xdg-open docs/wavebot/index.html  # Linux
+open docs/wavebot/index.html      # macOS
+start docs/wavebot/index.html     # Windows
+```
+
+### Documentation Structure
+
+The generated documentation includes:
+
+- **API Reference**: Detailed documentation of all modules, classes, and functions
+- **Module Overview**: High-level description of each module's purpose
+- **Function Signatures**: Parameters, return types, and descriptions
+- **Class Hierarchies**: Inheritance and relationship diagrams
+
+You can find documentation for the main components:
+
+- `camera.py`: Camera stream interface implementation
+- `config.py`: Configuration constants and logger setup
+- `servos.py`: Servo motor control and angle calculations
+- `vision.py`: Face detection and visualization functions
 
 ---
 
@@ -94,7 +141,7 @@ All channels are defined as Enums in `config.py`.
 
 ## ⚙️ Configuration
 
-You can adjust the following settings in `config.py`:
+You can adjust the following settings in `wavebot/config.py`:
 
 - `FRAME_WIDTH` and `FRAME_HEIGHT`: Camera resolution
 - `USE_USB_CAMERA`: Set to `True` to use a USB webcam instead of PiCamera
@@ -106,31 +153,31 @@ You can adjust the following settings in `config.py`:
 ### `main.py`
 
 - Runs the capture + processing loop
-- Calls functions from other modules
+- Calls functions from the wavebot package
 - Keeps track of time since last face detection
 - Recenters servos if no face is detected for 5 seconds
 
-### `servos.py`
+### `wavebot/servos.py`
 
 - Converts angles to PWM signals
 - Functions to center or update servo positions
 - Includes graceful fallback if hardware is unavailable
 - Maintains in-memory state of servo positions
 
-### `vision.py`
+### `wavebot/vision.py`
 
 - Loads the OpenCV face detector
 - Draws bounding boxes + grid overlay
 - Calculates servo movement based on face location
 - Shows coordinates of detected faces
 
-### `camera.py`
+### `wavebot/camera.py`
 
 - Provides a unified camera stream interface
 - Supports both PiCamera and USB cameras via OpenCV
 - Configurable via settings in `config.py`
 
-### `config.py`
+### `wavebot/config.py`
 
 - Central place for frame size and channel assignments
 - Enum classes for servo channels
@@ -142,7 +189,7 @@ You can adjust the following settings in `config.py`:
 
 The face detection model used is a **Caffe-based SSD (Single Shot Detector)** trained on ResNet10.
 
-Files are in the `/model` folder:
+Files are in the `wavebot/model` folder:
 
 - `deploy.prototxt`
 - `res10_300x300_ssd_iter_140000.caffemodel`

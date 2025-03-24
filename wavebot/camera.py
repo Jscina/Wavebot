@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import sys
 
-from config import FRAME_WIDTH, FRAME_HEIGHT, USE_USB_CAMERA
+from .config import FRAME_WIDTH, FRAME_HEIGHT, USE_USB_CAMERA
 
 try:
     from picamera import PiCamera  # type: ignore

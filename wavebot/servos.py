@@ -1,5 +1,5 @@
 from typing import Dict
-from config import EyesChannel, ExtraChannel, logger
+from .config import EyesChannel, ExtraChannel, logger
 
 
 HARDWARE_AVAILABLE: bool = False

@@ -2,6 +2,7 @@
 name = "wavebot"
 version = "0.1.0"
 description = "Face tracking project for Raspberry Pi using OpenCV and Adafruit servos"
+requires-python = ">=3.11"
 dependencies = [
   "numpy",
   "opencv-python",
@@ -10,4 +11,7 @@ dependencies = [
   "adafruit-blinka",
   "picamera; platform_machine == 'armv7l'",
 ]
-requires-python = ">=3.7"
+[dependency-groups]
+dev = [
+    "pdoc3>=0.11.6",
+]

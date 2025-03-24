@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 from typing import Callable
-from servos import update_servos
-from config import FRAME_WIDTH, FRAME_HEIGHT
+from .servos import update_servos
+from .config import FRAME_WIDTH, FRAME_HEIGHT
 from pathlib import Path
 
-base_model_path = Path(__file__).parent / "model"
+base_model_path = Path(__file__).parent.parent / "model"
 caffe_model_path = base_model_path / "deploy.prototxt"
 caffe_weights_path = base_model_path / "res10_300x300_ssd_iter_140000.caffemodel"
 
