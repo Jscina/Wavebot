@@ -1,4 +1,4 @@
-from .config import EyesChannel, ExtraChannel, logger
+from .config import EyesChannel, NeckChannel, logger
 
 
 HARDWARE_AVAILABLE: bool = False
@@ -8,8 +8,8 @@ servo_positions: dict[int, float] = {
     EyesChannel.LEFT_Y.value: 120.0,
     EyesChannel.RIGHT_X.value: 130.0,
     EyesChannel.RIGHT_Y.value: 110.0,
-    ExtraChannel.EXTRA_1.value: 74.0,
-    ExtraChannel.EXTRA_2.value: 20.0,
+    NeckChannel.NECK_X.value: 74.0,
+    NeckChannel.NECK_Y.value: 20.0,
 }
 
 try:
@@ -31,7 +31,7 @@ except (ImportError, OSError, AttributeError) as exc:
     logger.warning("Falling back to dummy servo functions (no real servo movement).")
 
 
-def set_servo_angle(channel: EyesChannel | ExtraChannel, angle: float) -> None:
+def set_servo_angle(channel: EyesChannel | NeckChannel, angle: float) -> None:
     """
     Sets the servo (eye or extra) at 'channel' to 'angle' degrees.
 
@@ -104,5 +104,5 @@ def center_servos() -> None:
     set_servo_angle(EyesChannel.RIGHT_X, 130.0)
     set_servo_angle(EyesChannel.RIGHT_Y, 110.0)
 
-    set_servo_angle(ExtraChannel.EXTRA_1, 74.0)
-    set_servo_angle(ExtraChannel.EXTRA_2, 20.0)
+    set_servo_angle(NeckChannel.NECK_X, 74.0)
+    set_servo_angle(NeckChannel.NECK_Y, 20.0)

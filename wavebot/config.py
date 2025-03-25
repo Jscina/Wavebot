@@ -12,9 +12,9 @@ class EyesChannel(IntEnum):
     RIGHT_Y = 3
 
 
-class ExtraChannel(IntEnum):
-    EXTRA_1 = 8
-    EXTRA_2 = 9
+class NeckChannel(IntEnum):
+    NECK_X = 8
+    NECK_Y = 9
 
 
 FRAME_WIDTH = 320
