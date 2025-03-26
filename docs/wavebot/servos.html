@@ -60,26 +60,26 @@ el.replaceWith(d);
     &#34;&#34;&#34;
     logger.info(&#34;center_servos() called (HW=%s)&#34;, HARDWARE_AVAILABLE)
 
-    set_servo_angle(EyesChannel.LEFT_X, 125.0)
-    set_servo_angle(EyesChannel.LEFT_Y, 120.0)
-    set_servo_angle(EyesChannel.RIGHT_X, 130.0)
-    set_servo_angle(EyesChannel.RIGHT_Y, 110.0)
+    set_servo_angle(Channel.EYE_LEFT_X, 125.0)
+    set_servo_angle(Channel.EYE_LEFT_Y, 120.0)
+    set_servo_angle(Channel.EYE_RIGHT_X, 130.0)
+    set_servo_angle(Channel.EYE_RIGHT_Y, 110.0)
 
-    set_servo_angle(ExtraChannel.EXTRA_1, 74.0)
-    set_servo_angle(ExtraChannel.EXTRA_2, 20.0)</code></pre>
+    set_servo_angle(Channel.NECK_X, 74.0)
+    set_servo_angle(Channel.NECK_Y, 20.0)</code></pre>
 </details>
 <div class="desc"><p>Resets all servo motors to their default center positions.</p>
 <p>Logs the action, then calls set_servo_angle on each channel.</p></div>
 </dd>
 <dt id="wavebot.servos.set_servo_angle"><code class="name flex">
-<span>def <span class="ident">set_servo_angle</span></span>(<span>channel: <a title="wavebot.config.EyesChannel" href="config.html#wavebot.config.EyesChannel">EyesChannel</a> | <a title="wavebot.config.ExtraChannel" href="config.html#wavebot.config.ExtraChannel">ExtraChannel</a>,<br>angle: float) ‑> None</span>
+<span>def <span class="ident">set_servo_angle</span></span>(<span>channel: <a title="wavebot.config.Channel" href="config.html#wavebot.config.Channel">Channel</a>,<br>angle: float) ‑> None</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def set_servo_angle(channel: EyesChannel | ExtraChannel, angle: float) -&gt; None:
+<pre><code class="python">def set_servo_angle(channel: Channel | Channel, angle: float) -&gt; None:
     &#34;&#34;&#34;
     Sets the servo (eye or extra) at &#39;channel&#39; to &#39;angle&#39; degrees.
 
@@ -137,17 +137,17 @@ Updates an in-memory dictionary to allow simulation or replay if hardware is abs
     angle_diff: float = x_val * 50.0 / width
 
     if x_val &lt; 0:
-        set_servo_angle(EyesChannel.LEFT_X, 125.0 - angle_diff)
-        set_servo_angle(EyesChannel.RIGHT_X, 130.0 - angle_diff)
+        set_servo_angle(Channel.EYE_LEFT_X, 125.0 - angle_diff)
+        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 - angle_diff)
     elif x_val &gt; 0:
-        set_servo_angle(EyesChannel.LEFT_X, 125.0 + angle_diff)
-        set_servo_angle(EyesChannel.RIGHT_X, 130.0 + angle_diff)
+        set_servo_angle(Channel.EYE_LEFT_X, 125.0 + angle_diff)
+        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 + angle_diff)
 
     ley_angle: float = 110.0 - (y_val * (120.0 - 300.0) / height)
     rey_angle: float = 110.0 + (y_val * (110.0 - 300.0) / height)
 
-    set_servo_angle(EyesChannel.LEFT_Y, ley_angle)
-    set_servo_angle(EyesChannel.RIGHT_Y, rey_angle)</code></pre>
+    set_servo_angle(Channel.EYE_LEFT_Y, ley_angle)
+    set_servo_angle(Channel.EYE_RIGHT_Y, rey_angle)</code></pre>
 </details>
 <div class="desc"><p>Moves the eye servos based on face coordinates.</p>
 <p>Logs the (x_val, y_val) offset and updates the servo angles accordingly.</p></div>

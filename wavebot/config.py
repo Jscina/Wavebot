@@ -5,14 +5,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class EyesChannel(IntEnum):
-    LEFT_X = 0
-    LEFT_Y = 1
-    RIGHT_X = 2
-    RIGHT_Y = 3
+class Channel(IntEnum):
+    """Mapping of servo motor channels to their corresponding GPIO pins"""
 
-
-class NeckChannel(IntEnum):
+    EYE_LEFT_X = 0
+    EYE_LEFT_Y = 1
+    EYE_RIGHT_X = 2
+    EYE_RIGHT_Y = 3
     NECK_X = 8
     NECK_Y = 9
 
