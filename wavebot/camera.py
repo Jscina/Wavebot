@@ -39,10 +39,12 @@ def camera_stream() -> Generator[np.ndarray, None, None]:
             cap.release()
 
     else:
-        with PiCamera() as camera:
+        camera = PiCamera()
+        try:
             camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
             camera.framerate = 30
-            with PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT)) as stream:  # type: ignore
+            stream = PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT))  # type: ignore
+            try:
                 for frame_data in camera.capture_continuous(
                     stream, format="bgr", use_video_port=True
                 ):
@@ -51,3 +53,7 @@ def camera_stream() -> Generator[np.ndarray, None, None]:
                     # Clear the PiRGBArray to prepare for next frame
                     stream.truncate(0)
                     stream.seek(0)
+            finally:
+                stream.close()
+        finally:
+            camera.close()

@@ -14,7 +14,7 @@ Usage:
 import sys
 import argparse
 import logging
-
+from typing import Optional
 from wavebot import set_servo_angle, Channel
 
 
@@ -35,7 +35,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def configure_logging(log_file: str | None) -> logging.Logger:
+def configure_logging(log_file: Optional[str]) -> logging.Logger:
     """Configure logging to console or file."""
     logger = logging.getLogger("servo_calibration")
     logger.setLevel(logging.INFO)

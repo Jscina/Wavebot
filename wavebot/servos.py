@@ -31,7 +31,7 @@ except (ImportError, OSError, AttributeError) as exc:
     logger.warning("Falling back to dummy servo functions (no real servo movement).")
 
 
-def set_servo_angle(channel: Channel | Channel, angle: float) -> None:
+def set_servo_angle(channel: Channel, angle: float) -> None:
     """
     Sets the servo (eye or extra) at 'channel' to 'angle' degrees.
 

@@ -1,11 +1,16 @@
-from enum import IntEnum
+from enum import Enum
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+FRAME_WIDTH = 320
+FRAME_HEIGHT = 240
 
-class Channel(IntEnum):
+USE_USB_CAMERA = False
+
+
+class Channel(Enum):
     """Mapping of servo motor channels to their corresponding GPIO pins"""
 
     EYE_LEFT_X = 0
@@ -14,9 +19,3 @@ class Channel(IntEnum):
     EYE_RIGHT_Y = 3
     NECK_X = 8
     NECK_Y = 9
-
-
-FRAME_WIDTH = 320
-FRAME_HEIGHT = 240
-
-USE_USB_CAMERA = False
