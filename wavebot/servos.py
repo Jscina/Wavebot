@@ -63,9 +63,7 @@ def set_servo_angle(channel: Channel, angle: float) -> None:
 
 def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     """
-    Moves the eye servos based on face coordinates.
-
-    Logs the (x_val, y_val) offset and updates the servo angles accordingly.
+    Moves the eye and neck servos based on face coordinates.
     """
     logger.info(
         "update_servos(x_val=%d, y_val=%d, width=%d, height=%d)",
@@ -75,20 +73,46 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
         height,
     )
 
-    angle_diff: float = x_val * 50.0 / width
+    eye_x_angle_diff: float = x_val * 50.0 / width
+    neck_x_angle_diff: float = x_val * 25.0 / width
 
     if x_val < 0:
-        set_servo_angle(Channel.EYE_LEFT_X, 125.0 - angle_diff)
-        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 - angle_diff)
+        set_servo_angle(Channel.EYE_LEFT_X, 125.0 - eye_x_angle_diff)
+        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 - eye_x_angle_diff)
     elif x_val > 0:
-        set_servo_angle(Channel.EYE_LEFT_X, 125.0 + angle_diff)
-        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 + angle_diff)
+        set_servo_angle(Channel.EYE_LEFT_X, 125.0 + eye_x_angle_diff)
+        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 + eye_x_angle_diff)
 
     ley_angle: float = 110.0 - (y_val * (120.0 - 300.0) / height)
     rey_angle: float = 110.0 + (y_val * (110.0 - 300.0) / height)
 
     set_servo_angle(Channel.EYE_LEFT_Y, ley_angle)
     set_servo_angle(Channel.EYE_RIGHT_Y, rey_angle)
+
+    current_neck_x = servo_positions[Channel.NECK_X.value]
+    new_neck_x = current_neck_x
+
+    if abs(x_val) > width // 6:
+        if x_val < 0:
+            new_neck_x = max(74.0 - neck_x_angle_diff, 45.0)
+        else:
+            new_neck_x = min(74.0 + neck_x_angle_diff, 110.0)
+
+    neck_y_angle_diff: float = y_val * 20.0 / height
+    current_neck_y = servo_positions[Channel.NECK_Y.value]
+    new_neck_y = current_neck_y
+
+    if abs(y_val) > height // 6:
+        if y_val > 0:
+            new_neck_y = max(20.0 - neck_y_angle_diff, 0.0)
+        else:
+            new_neck_y = min(20.0 + neck_y_angle_diff, 40.0)
+
+    if new_neck_x != current_neck_x:
+        set_servo_angle(Channel.NECK_X, new_neck_x)
+
+    if new_neck_y != current_neck_y:
+        set_servo_angle(Channel.NECK_Y, new_neck_y)
 
 
 def center_servos() -> None:
