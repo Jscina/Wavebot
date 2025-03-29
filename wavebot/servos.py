@@ -128,5 +128,5 @@ def center_servos() -> None:
     set_servo_angle(Channel.EYE_RIGHT_X, 130.0)
     set_servo_angle(Channel.EYE_RIGHT_Y, 110.0)
 
-    set_servo_angle(Channel.NECK_X, 74.0)
-    set_servo_angle(Channel.NECK_Y, 20.0)
+    set_servo_angle(Channel.NECK_X, 70.0)
+    set_servo_angle(Channel.NECK_Y, 75.0)
