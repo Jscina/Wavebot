@@ -18,6 +18,7 @@ This project uses:
 wavebot/
 │
 ├── main.py                  # Main application entry point
+├── calibrate.py                  # Main application entry point
 ├── pyproject.toml           # Project dependencies and metadata
 ├── wavebot/
 │   ├── __init__.py          # Package exports
