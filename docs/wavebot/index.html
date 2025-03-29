@@ -96,10 +96,12 @@ el.replaceWith(d);
             cap.release()
 
     else:
-        with PiCamera() as camera:
+        camera = PiCamera()
+        try:
             camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
             camera.framerate = 30
-            with PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT)) as stream:  # type: ignore
+            stream = PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT))  # type: ignore
+            try:
                 for frame_data in camera.capture_continuous(
                     stream, format=&#34;bgr&#34;, use_video_port=True
                 ):
@@ -107,7 +109,11 @@ el.replaceWith(d);
                     yield frame
                     # Clear the PiRGBArray to prepare for next frame
                     stream.truncate(0)
-                    stream.seek(0)</code></pre>
+                    stream.seek(0)
+            finally:
+                stream.close()
+        finally:
+            camera.close()</code></pre>
 </details>
 <div class="desc"><p>Yields frames (as np.ndarray) from either PiCamera (if USE_USB_CAMERA=False)
 or from USB camera via OpenCV VideoCapture (if USE_USB_CAMERA=True).</p></div>
@@ -252,7 +258,7 @@ or from USB camera via OpenCV VideoCapture (if USE_USB_CAMERA=True).</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def set_servo_angle(channel: Channel | Channel, angle: float) -&gt; None:
+<pre><code class="python">def set_servo_angle(channel: Channel, angle: float) -&gt; None:
     &#34;&#34;&#34;
     Sets the servo (eye or extra) at &#39;channel&#39; to &#39;angle&#39; degrees.
 
@@ -328,6 +334,61 @@ Updates an in-memory dictionary to allow simulation or replay if hardware is abs
 </dl>
 </section>
 <section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="wavebot.Channel"><code class="flex name class">
+<span>class <span class="ident">Channel</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Channel(Enum):
+    &#34;&#34;&#34;Mapping of servo motor channels to their corresponding GPIO pins&#34;&#34;&#34;
+
+    EYE_LEFT_X = 0
+    EYE_LEFT_Y = 1
+    EYE_RIGHT_X = 2
+    EYE_RIGHT_Y = 3
+    NECK_X = 8
+    NECK_Y = 9</code></pre>
+</details>
+<div class="desc"><p>Mapping of servo motor channels to their corresponding GPIO pins</p></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="wavebot.Channel.EYE_LEFT_X"><code class="name">var <span class="ident">EYE_LEFT_X</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="wavebot.Channel.EYE_LEFT_Y"><code class="name">var <span class="ident">EYE_LEFT_Y</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="wavebot.Channel.EYE_RIGHT_X"><code class="name">var <span class="ident">EYE_RIGHT_X</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="wavebot.Channel.EYE_RIGHT_Y"><code class="name">var <span class="ident">EYE_RIGHT_Y</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="wavebot.Channel.NECK_X"><code class="name">var <span class="ident">NECK_X</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="wavebot.Channel.NECK_Y"><code class="name">var <span class="ident">NECK_Y</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -352,6 +413,21 @@ Updates an in-memory dictionary to allow simulation or replay if hardware is abs
 <li><code><a title="wavebot.draw_quadrants" href="#wavebot.draw_quadrants">draw_quadrants</a></code></li>
 <li><code><a title="wavebot.set_servo_angle" href="#wavebot.set_servo_angle">set_servo_angle</a></code></li>
 <li><code><a title="wavebot.update_servos" href="#wavebot.update_servos">update_servos</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="wavebot.Channel" href="#wavebot.Channel">Channel</a></code></h4>
+<ul class="two-column">
+<li><code><a title="wavebot.Channel.EYE_LEFT_X" href="#wavebot.Channel.EYE_LEFT_X">EYE_LEFT_X</a></code></li>
+<li><code><a title="wavebot.Channel.EYE_LEFT_Y" href="#wavebot.Channel.EYE_LEFT_Y">EYE_LEFT_Y</a></code></li>
+<li><code><a title="wavebot.Channel.EYE_RIGHT_X" href="#wavebot.Channel.EYE_RIGHT_X">EYE_RIGHT_X</a></code></li>
+<li><code><a title="wavebot.Channel.EYE_RIGHT_Y" href="#wavebot.Channel.EYE_RIGHT_Y">EYE_RIGHT_Y</a></code></li>
+<li><code><a title="wavebot.Channel.NECK_X" href="#wavebot.Channel.NECK_X">NECK_X</a></code></li>
+<li><code><a title="wavebot.Channel.NECK_Y" href="#wavebot.Channel.NECK_Y">NECK_Y</a></code></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

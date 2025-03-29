@@ -48,14 +48,14 @@ el.replaceWith(d);
 <dl>
 <dt id="wavebot.config.Channel"><code class="flex name class">
 <span>class <span class="ident">Channel</span></span>
-<span>(</span><span>*args, **kwds)</span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class Channel(IntEnum):
+<pre><code class="python">class Channel(Enum):
     &#34;&#34;&#34;Mapping of servo motor channels to their corresponding GPIO pins&#34;&#34;&#34;
 
     EYE_LEFT_X = 0
@@ -68,9 +68,6 @@ el.replaceWith(d);
 <div class="desc"><p>Mapping of servo motor channels to their corresponding GPIO pins</p></div>
 <h3>Ancestors</h3>
 <ul class="hlist">
-<li>enum.IntEnum</li>
-<li>builtins.int</li>
-<li>enum.ReprEnum</li>
 <li>enum.Enum</li>
 </ul>
 <h3>Class variables</h3>
