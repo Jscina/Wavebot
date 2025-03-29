@@ -123,10 +123,10 @@ def center_servos() -> None:
     """
     logger.info("center_servos() called (HW=%s)", HARDWARE_AVAILABLE)
 
-    set_servo_angle(Channel.EYE_LEFT_X, 125.0)
-    set_servo_angle(Channel.EYE_LEFT_Y, 120.0)
-    set_servo_angle(Channel.EYE_RIGHT_X, 130.0)
-    set_servo_angle(Channel.EYE_RIGHT_Y, 110.0)
+    set_servo_angle(Channel.EYE_LEFT_X, 140.0)
+    set_servo_angle(Channel.EYE_LEFT_Y, 70.0)
+    set_servo_angle(Channel.EYE_RIGHT_X, 155.0)
+    set_servo_angle(Channel.EYE_RIGHT_Y, 115.0)
 
     set_servo_angle(Channel.NECK_X, 70.0)
     set_servo_angle(Channel.NECK_Y, 75.0)
