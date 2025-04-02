@@ -61,7 +61,7 @@ def move_servo_gradually(
     channel: Channel,
     target_angle: float,
     step: float = 1.0,
-    delay: float = 0.01,
+    delay: float = 0.1,
 ) -> None:
     """
     Moves servo from its current angle to 'target_angle' smoothly in increments.
