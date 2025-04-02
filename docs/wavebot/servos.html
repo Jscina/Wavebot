@@ -55,21 +55,55 @@ el.replaceWith(d);
 <pre><code class="python">def center_servos() -&gt; None:
     &#34;&#34;&#34;
     Resets all servo motors to their default center positions.
-
     Logs the action, then calls set_servo_angle on each channel.
     &#34;&#34;&#34;
-    logger.info(&#34;center_servos() called (HW=%s)&#34;, HARDWARE_AVAILABLE)
-
-    set_servo_angle(Channel.EYE_LEFT_X, 125.0)
-    set_servo_angle(Channel.EYE_LEFT_Y, 120.0)
-    set_servo_angle(Channel.EYE_RIGHT_X, 130.0)
-    set_servo_angle(Channel.EYE_RIGHT_Y, 110.0)
-
-    set_servo_angle(Channel.NECK_X, 74.0)
-    set_servo_angle(Channel.NECK_Y, 20.0)</code></pre>
+    logger.info(f&#34;center_servos() called (HW={HARDWARE_AVAILABLE})&#34;)
+    set_servo_angle(Channel.EYE_LEFT_X, 140.0)
+    set_servo_angle(Channel.EYE_LEFT_Y, 70.0)
+    set_servo_angle(Channel.EYE_RIGHT_X, 155.0)
+    set_servo_angle(Channel.EYE_RIGHT_Y, 115.0)
+    set_servo_angle(Channel.NECK_X, 70.0)
+    set_servo_angle(Channel.NECK_Y, 75.0)</code></pre>
 </details>
-<div class="desc"><p>Resets all servo motors to their default center positions.</p>
-<p>Logs the action, then calls set_servo_angle on each channel.</p></div>
+<div class="desc"><p>Resets all servo motors to their default center positions.
+Logs the action, then calls set_servo_angle on each channel.</p></div>
+</dd>
+<dt id="wavebot.servos.move_servo_gradually"><code class="name flex">
+<span>def <span class="ident">move_servo_gradually</span></span>(<span>channel: <a title="wavebot.config.Channel" href="config.html#wavebot.config.Channel">Channel</a>,<br>target_angle: float,<br>step: float = 1.0,<br>delay: float = 0.01) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def move_servo_gradually(
+    channel: Channel,
+    target_angle: float,
+    step: float = 1.0,
+    delay: float = 0.01,
+) -&gt; None:
+    &#34;&#34;&#34;
+    Moves servo from its current angle to &#39;target_angle&#39; smoothly in increments.
+    Each increment waits &#39;delay&#39; seconds, clamping at each step.
+    &#34;&#34;&#34;
+    current_angle = servo_positions.get(channel.value, 90.0)
+    servo_min, servo_max = SERVO_LIMITS.get(channel.value, (0.0, 180.0))
+    target_clamped = max(servo_min, min(target_angle, servo_max))
+
+    if current_angle &lt; target_clamped:
+        angle_range = range(int(current_angle), int(target_clamped) + 1, int(step))
+    else:
+        angle_range = range(int(current_angle), int(target_clamped) - 1, -int(step))
+
+    for ang in angle_range:
+        clamped_ang = max(servo_min, min(float(ang), servo_max))
+        set_servo_angle(channel, clamped_ang)
+        time.sleep(delay)
+
+    set_servo_angle(channel, target_clamped)</code></pre>
+</details>
+<div class="desc"><p>Moves servo from its current angle to 'target_angle' smoothly in increments.
+Each increment waits 'delay' seconds, clamping at each step.</p></div>
 </dd>
 <dt id="wavebot.servos.set_servo_angle"><code class="name flex">
 <span>def <span class="ident">set_servo_angle</span></span>(<span>channel: <a title="wavebot.config.Channel" href="config.html#wavebot.config.Channel">Channel</a>,<br>angle: float) ‑> None</span>
@@ -81,35 +115,32 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">def set_servo_angle(channel: Channel, angle: float) -&gt; None:
     &#34;&#34;&#34;
-    Sets the servo (eye or extra) at &#39;channel&#39; to &#39;angle&#39; degrees.
-
+    Sets the servo at &#39;channel&#39; to &#39;angle&#39; degrees, clamped to a safe range.
     Logs which servo is being moved, old → new angles, and whether hardware is used.
     Updates an in-memory dictionary to allow simulation or replay if hardware is absent.
     &#34;&#34;&#34;
     old_angle = servo_positions.get(channel.value, 0.0)
-
+    servo_min, servo_max = SERVO_LIMITS.get(channel.value, (0.0, 180.0))
+    clamped_angle = max(servo_min, min(angle, servo_max))
     servo_type = channel.__class__.__name__
 
     logger.info(
-        &#34;set_servo_angle(%s.%s): old=%.2f → new=%.2f (HW=%s)&#34;,
-        servo_type,
-        channel.name,
-        old_angle,
-        angle,
-        HARDWARE_AVAILABLE,
+        f&#34;set_servo_angle({servo_type}.{channel.name}): &#34;
+        f&#34;old={old_angle:.2f} → requested={angle:.2f} → clamped={clamped_angle:.2f} &#34;
+        f&#34;(HW={HARDWARE_AVAILABLE})&#34;
     )
 
-    servo_positions[channel.value] = angle
+    servo_positions[channel.value] = clamped_angle
 
     if not HARDWARE_AVAILABLE:
         return
 
-    pulse_length: float = (angle * 1000 // 180) + 1000
+    pulse_length: float = (clamped_angle * 1000 // 180) + 1000
     duty_cycle: int = int(pulse_length * 65535 / (1 / pwm.frequency) / 1_000_000)
     pwm.channels[channel.value].duty_cycle = duty_cycle</code></pre>
 </details>
-<div class="desc"><p>Sets the servo (eye or extra) at 'channel' to 'angle' degrees.</p>
-<p>Logs which servo is being moved, old → new angles, and whether hardware is used.
+<div class="desc"><p>Sets the servo at 'channel' to 'angle' degrees, clamped to a safe range.
+Logs which servo is being moved, old → new angles, and whether hardware is used.
 Updates an in-memory dictionary to allow simulation or replay if hardware is absent.</p></div>
 </dd>
 <dt id="wavebot.servos.update_servos"><code class="name flex">
@@ -122,35 +153,52 @@ Updates an in-memory dictionary to allow simulation or replay if hardware is abs
 </summary>
 <pre><code class="python">def update_servos(x_val: int, y_val: int, width: int, height: int) -&gt; None:
     &#34;&#34;&#34;
-    Moves the eye servos based on face coordinates.
-
-    Logs the (x_val, y_val) offset and updates the servo angles accordingly.
+    Moves the eye and neck servos based on face coordinates.
+    Angles are clamped internally by set_servo_angle().
     &#34;&#34;&#34;
     logger.info(
-        &#34;update_servos(x_val=%d, y_val=%d, width=%d, height=%d)&#34;,
-        x_val,
-        y_val,
-        width,
-        height,
+        f&#34;update_servos(x_val={x_val}, y_val={y_val}, width={width}, height={height})&#34;
     )
 
-    angle_diff: float = x_val * 50.0 / width
+    eye_x_angle_diff: float = x_val * 50.0 / width
+    neck_x_angle_diff: float = x_val * 25.0 / width
 
     if x_val &lt; 0:
-        set_servo_angle(Channel.EYE_LEFT_X, 125.0 - angle_diff)
-        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 - angle_diff)
+        set_servo_angle(Channel.EYE_LEFT_X, 125.0 - eye_x_angle_diff)
+        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 - eye_x_angle_diff)
     elif x_val &gt; 0:
-        set_servo_angle(Channel.EYE_LEFT_X, 125.0 + angle_diff)
-        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 + angle_diff)
+        set_servo_angle(Channel.EYE_LEFT_X, 125.0 + eye_x_angle_diff)
+        set_servo_angle(Channel.EYE_RIGHT_X, 130.0 + eye_x_angle_diff)
 
     ley_angle: float = 110.0 - (y_val * (120.0 - 300.0) / height)
     rey_angle: float = 110.0 + (y_val * (110.0 - 300.0) / height)
 
     set_servo_angle(Channel.EYE_LEFT_Y, ley_angle)
-    set_servo_angle(Channel.EYE_RIGHT_Y, rey_angle)</code></pre>
+    set_servo_angle(Channel.EYE_RIGHT_Y, rey_angle)
+
+    current_neck_x = servo_positions[Channel.NECK_X.value]
+    new_neck_x = current_neck_x
+    if abs(x_val) &gt; width // 6:
+        if x_val &lt; 0:
+            new_neck_x = 74.0 - neck_x_angle_diff
+        else:
+            new_neck_x = 74.0 + neck_x_angle_diff
+    if new_neck_x != current_neck_x:
+        set_servo_angle(Channel.NECK_X, new_neck_x)
+
+    neck_y_angle_diff: float = y_val * 20.0 / height
+    current_neck_y = servo_positions[Channel.NECK_Y.value]
+    new_neck_y = current_neck_y
+    if abs(y_val) &gt; height // 6:
+        if y_val &gt; 0:
+            new_neck_y = 20.0 - neck_y_angle_diff
+        else:
+            new_neck_y = 20.0 + neck_y_angle_diff
+    if new_neck_y != current_neck_y:
+        set_servo_angle(Channel.NECK_Y, new_neck_y)</code></pre>
 </details>
-<div class="desc"><p>Moves the eye servos based on face coordinates.</p>
-<p>Logs the (x_val, y_val) offset and updates the servo angles accordingly.</p></div>
+<div class="desc"><p>Moves the eye and neck servos based on face coordinates.
+Angles are clamped internally by set_servo_angle().</p></div>
 </dd>
 </dl>
 </section>
@@ -170,6 +218,7 @@ Updates an in-memory dictionary to allow simulation or replay if hardware is abs
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
 <li><code><a title="wavebot.servos.center_servos" href="#wavebot.servos.center_servos">center_servos</a></code></li>
+<li><code><a title="wavebot.servos.move_servo_gradually" href="#wavebot.servos.move_servo_gradually">move_servo_gradually</a></code></li>
 <li><code><a title="wavebot.servos.set_servo_angle" href="#wavebot.servos.set_servo_angle">set_servo_angle</a></code></li>
 <li><code><a title="wavebot.servos.update_servos" href="#wavebot.servos.update_servos">update_servos</a></code></li>
 </ul>
