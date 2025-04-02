@@ -5,7 +5,7 @@ HARDWARE_AVAILABLE: bool = False
 
 servo_positions: dict[int, float] = {
     Channel.EYE_LEFT_X.value: 140.0,
-    Channel.EYE_LEFT_Y.value: 70.0,
+    Channel.EYE_LEFT_Y.value: 90.0,
     Channel.EYE_RIGHT_X.value: 155.0,
     Channel.EYE_RIGHT_Y.value: 115.0,
     Channel.NECK_X.value: 70.0,
@@ -138,7 +138,7 @@ def center_servos() -> None:
     """
     logger.info(f"center_servos() called (HW={HARDWARE_AVAILABLE})")
     set_servo_angle(Channel.EYE_LEFT_X, 140.0)
-    set_servo_angle(Channel.EYE_LEFT_Y, 70.0)
+    set_servo_angle(Channel.EYE_LEFT_Y, 90.0)
     set_servo_angle(Channel.EYE_RIGHT_X, 155.0)
     set_servo_angle(Channel.EYE_RIGHT_Y, 115.0)
     set_servo_angle(Channel.NECK_X, 70.0)
