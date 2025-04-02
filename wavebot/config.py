@@ -23,7 +23,7 @@ class Channel(Enum):
 
 SERVO_LIMITS = {
     Channel.EYE_LEFT_X.value: (130.0, 160.0),
-    Channel.EYE_LEFT_Y.value: (60.0, 140.0),
+    Channel.EYE_LEFT_Y.value: (55.0, 90.0),
     Channel.EYE_RIGHT_X.value: (100.0, 160.0),
     Channel.EYE_RIGHT_Y.value: (60.0, 140.0),
     Channel.NECK_X.value: (20.0, 110.0),
