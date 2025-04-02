@@ -19,3 +19,13 @@ class Channel(Enum):
     EYE_RIGHT_Y = 3
     NECK_X = 8
     NECK_Y = 9
+
+
+SERVO_LIMITS = {
+    Channel.EYE_LEFT_X.value: (100.0, 150.0),
+    Channel.EYE_LEFT_Y.value: (60.0, 140.0),
+    Channel.EYE_RIGHT_X.value: (100.0, 160.0),
+    Channel.EYE_RIGHT_Y.value: (60.0, 140.0),
+    Channel.NECK_X.value: (45.0, 110.0),
+    Channel.NECK_Y.value: (0.0, 40.0),
+}

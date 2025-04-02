@@ -8,7 +8,6 @@ from .config import FRAME_WIDTH, FRAME_HEIGHT, USE_USB_CAMERA
 try:
     from picamera import PiCamera  # type: ignore
     from picamera.array import PiRGBArray  # type: ignore
-
 except ImportError:
     PiCamera = None
     PiRGBArray = None
