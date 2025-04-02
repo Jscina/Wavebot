@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import sys
 
-from .config import FRAME_WIDTH, FRAME_HEIGHT, USE_USB_CAMERA
+from .config import FRAME_WIDTH, FRAME_HEIGHT, USE_USB_CAMERA, logger
 
 try:
     from picamera import PiCamera  # type: ignore
@@ -19,6 +19,7 @@ def camera_stream() -> Generator[np.ndarray, None, None]:
     or from USB camera via OpenCV VideoCapture (if USE_USB_CAMERA=True).
     """
     if USE_USB_CAMERA or PiCamera is None:
+        logger.info("Using USB camera")
         cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
@@ -38,6 +39,7 @@ def camera_stream() -> Generator[np.ndarray, None, None]:
             cap.release()
 
     else:
+        logger.info("Using PiCamera")
         camera = PiCamera()
         try:
             camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
