@@ -1,20 +1,35 @@
+import argparse
+import logging
 import cv2
 import time
 from wavebot import (
+    ServoController,
     camera_stream,
     detect_faces,
     draw_faces,
     draw_quadrants,
-    center_servos,
     logger,
 )
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--debug", action="store_true", help="Enable logging")
+args, _ = parser.parse_known_args()
+ENABLE_LOGGING = args.debug
+
+if ENABLE_LOGGING:
+    logger.setLevel(logging.INFO)
+else:
+    logger.setLevel(logging.WARNING)
 
 
 def main() -> None:
     """
     Main loop for face detection and servo control.
     """
-    center_servos()
+    servo_controller = ServoController()
+    servo_controller.start()
+    servo_controller.queue_center_servos()
     last_face_time = time.time()
 
     for frame in camera_stream():
@@ -36,9 +51,9 @@ def main() -> None:
         # If no face for 5s, recenter servos
         if not face_detected and (time.time() - last_face_time > 5):
             logger.info("No face detected for 5s, recentering servos")
-            center_servos()
+            servo_controller.queue_center_servos()
             last_face_time = time.time()
-
+    servo_controller.stop()
     cv2.destroyAllWindows()
 
 
