@@ -10,6 +10,7 @@ from wavebot import (
     draw_quadrants,
     logger,
 )
+from wavebot.vision import FaceBoxList
 
 
 parser = argparse.ArgumentParser()
@@ -32,10 +33,15 @@ def main() -> None:
     servo_controller.queue_center_servos()
     last_face_time = time.time()
 
-    for frame in camera_stream():
-        faces = detect_faces(frame)
+    frame_count = 0
+    faces: FaceBoxList = []
 
-        # Callback function to update last face detection time
+    for frame in camera_stream():
+        frame_count += 1
+
+        if frame_count % 3 == 0:
+            faces = detect_faces(frame)
+
         def on_face_detected() -> None:
             nonlocal last_face_time
             last_face_time = time.time()
@@ -53,6 +59,7 @@ def main() -> None:
             logger.info("No face detected for 5s, recentering servos")
             servo_controller.queue_center_servos()
             last_face_time = time.time()
+
     servo_controller.stop()
     cv2.destroyAllWindows()
 
