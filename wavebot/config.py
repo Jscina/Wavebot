@@ -2,7 +2,7 @@ from enum import Enum
 import logging
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("Wavebot")
 
 FRAME_WIDTH = 320
 FRAME_HEIGHT = 240
