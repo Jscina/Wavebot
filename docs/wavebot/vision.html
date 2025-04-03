@@ -78,7 +78,7 @@ el.replaceWith(d);
 :return: List of bounding boxes (x, y, w, h).</p></div>
 </dd>
 <dt id="wavebot.vision.draw_faces"><code class="name flex">
-<span>def <span class="ident">draw_faces</span></span>(<span>frame: numpy.ndarray,<br>faces: list[tuple[int, int, int, int]],<br>on_face_detected: Callable[[], None]) ‑> bool</span>
+<span>def <span class="ident">draw_faces</span></span>(<span>controller: <a title="wavebot.servos.ServoController" href="servos.html#wavebot.servos.ServoController">ServoController</a>,<br>frame: numpy.ndarray,<br>faces: list[tuple[int, int, int, int]],<br>on_face_detected: Callable[[], None]) ‑> bool</span>
 </code></dt>
 <dd>
 <details class="source">
@@ -86,7 +86,10 @@ el.replaceWith(d);
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def draw_faces(
-    frame: np.ndarray, faces: FaceBoxList, on_face_detected: Callable[[], None]
+    controller: ServoController,
+    frame: np.ndarray,
+    faces: FaceBoxList,
+    on_face_detected: Callable[[], None],
 ) -&gt; bool:
     &#34;&#34;&#34;
     Draws bounding boxes and centers the eyes on detected faces.
@@ -120,7 +123,9 @@ el.replaceWith(d);
             1,
         )
 
-        update_servos(reversed_x, relative_y, FRAME_WIDTH, FRAME_HEIGHT)
+        controller.queue_update_servos(
+            reversed_x, relative_y, FRAME_WIDTH, FRAME_HEIGHT
+        )
         on_face_detected()
 
     return True</code></pre>

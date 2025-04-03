@@ -58,6 +58,7 @@ el.replaceWith(d);
     or from USB camera via OpenCV VideoCapture (if USE_USB_CAMERA=True).
     &#34;&#34;&#34;
     if USE_USB_CAMERA or PiCamera is None:
+        logger.info(&#34;Using USB camera&#34;)
         cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
@@ -77,6 +78,7 @@ el.replaceWith(d);
             cap.release()
 
     else:
+        logger.info(&#34;Using PiCamera&#34;)
         camera = PiCamera()
         try:
             camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
