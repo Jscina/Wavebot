@@ -40,7 +40,7 @@ def main() -> None:
             nonlocal last_face_time
             last_face_time = time.time()
 
-        face_detected = draw_faces(frame, faces, on_face_detected)
+        face_detected = draw_faces(servo_controller, frame, faces, on_face_detected)
         draw_quadrants(frame)
 
         cv2.imshow("Live Footage", frame)

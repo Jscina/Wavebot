@@ -167,7 +167,7 @@ class ServoController:
             else:
                 new_neck_x = 74.0 + neck_x_angle_diff
         if new_neck_x != current_neck_x:
-            self.queue_servo_angle(Channel.NECK_X, new_neck_x)
+            self.queue_move_servo_gradually(Channel.NECK_X, new_neck_x)
 
         neck_y_angle_diff: float = y_val * 20.0 / height
         current_neck_y = SERVO_POSITIONS[Channel.NECK_Y.value]
@@ -178,7 +178,7 @@ class ServoController:
             else:
                 new_neck_y = 20.0 + neck_y_angle_diff
         if new_neck_y != current_neck_y:
-            self.queue_servo_angle(Channel.NECK_Y, new_neck_y)
+            self.queue_move_servo_gradually(Channel.NECK_Y, new_neck_y)
 
     def _worker(self):
         """

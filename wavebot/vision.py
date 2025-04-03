@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 from typing import Callable
-from .servos import update_servos
+from .servos import ServoController
 from .config import FRAME_WIDTH, FRAME_HEIGHT
 from pathlib import Path
 
@@ -39,7 +39,10 @@ def detect_faces(frame: np.ndarray) -> FaceBoxList:
 
 
 def draw_faces(
-    frame: np.ndarray, faces: FaceBoxList, on_face_detected: Callable[[], None]
+    controller: ServoController,
+    frame: np.ndarray,
+    faces: FaceBoxList,
+    on_face_detected: Callable[[], None],
 ) -> bool:
     """
     Draws bounding boxes and centers the eyes on detected faces.
@@ -73,7 +76,9 @@ def draw_faces(
             1,
         )
 
-        update_servos(reversed_x, relative_y, FRAME_WIDTH, FRAME_HEIGHT)
+        controller.queue_update_servos(
+            reversed_x, relative_y, FRAME_WIDTH, FRAME_HEIGHT
+        )
         on_face_detected()
 
     return True
