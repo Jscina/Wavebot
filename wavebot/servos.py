@@ -89,8 +89,9 @@ def wave() -> None:
     Waves the right hand servo by moving it to 0 degrees and back to 90 degrees.
     """
     if HARDWARE_AVAILABLE:
-        move_servo_gradually(Channel.HAND_RIGHT, 0.0, step=5.0)
-        move_servo_gradually(Channel.HAND_RIGHT, 90.0, step=5.0)
+        for _ in range(2):
+            set_servo_angle(Channel.HAND_RIGHT, 0.0)
+            set_servo_angle(Channel.HAND_RIGHT, 90.0)
     else:
         logger.info("Waving (simulated, no hardware available)")
 
@@ -156,3 +157,4 @@ def center_servos() -> None:
     set_servo_angle(Channel.EYE_RIGHT_Y, 115.0)
     set_servo_angle(Channel.NECK_X, 70.0)
     set_servo_angle(Channel.NECK_Y, 75.0)
+    set_servo_angle(Channel.HAND_RIGHT, 45.0)
