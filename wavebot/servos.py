@@ -5,9 +5,9 @@ HARDWARE_AVAILABLE: bool = False
 
 servo_positions: dict[int, float] = {
     Channel.EYE_LEFT_X.value: 140.0,
-    Channel.EYE_LEFT_Y.value: 90.0,
+    Channel.EYE_LEFT_Y.value: 70.0,
     Channel.EYE_RIGHT_X.value: 155.0,
-    Channel.EYE_RIGHT_Y.value: 115.0,
+    Channel.EYE_RIGHT_Y.value: 110.0,
     Channel.NECK_X.value: 70.0,
     Channel.NECK_Y.value: 75.0,
 }
