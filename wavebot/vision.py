@@ -30,7 +30,7 @@ def detect_faces(frame: np.ndarray) -> FaceBoxList:
     faces: FaceBoxList = []
     for i in range(detections.shape[2]):
         confidence: float = detections[0, 0, i, 2]
-        if confidence > 0.5:
+        if confidence > 0.7:
             x1, y1, x2, y2 = detections[0, 0, i, 3:7] * np.array(
                 [width, height, width, height]
             )
