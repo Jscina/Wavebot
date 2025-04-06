@@ -121,6 +121,8 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     set_servo_angle(Channel.EYE_LEFT_Y, ley_angle)
     set_servo_angle(Channel.EYE_RIGHT_Y, rey_angle)
 
+    wave()
+
     current_neck_x = servo_positions[Channel.NECK_X.value]
     new_neck_x = current_neck_x
     if abs(x_val) > width // 6:
@@ -141,8 +143,6 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
             new_neck_y = 20.0 + neck_y_angle_diff
     if new_neck_y != current_neck_y:
         move_servo_gradually(Channel.NECK_Y, new_neck_y)
-
-    wave()
 
 
 def center_servos() -> None:
