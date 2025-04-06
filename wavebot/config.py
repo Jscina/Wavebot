@@ -17,6 +17,7 @@ class Channel(Enum):
     EYE_LEFT_Y = 1
     EYE_RIGHT_X = 2
     EYE_RIGHT_Y = 3
+    HAND_RIGHT = 4
     NECK_X = 8
     NECK_Y = 9
 

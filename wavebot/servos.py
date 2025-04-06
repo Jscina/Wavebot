@@ -84,6 +84,17 @@ def move_servo_gradually(
     set_servo_angle(channel, target_clamped)
 
 
+def wave() -> None:
+    """
+    Waves the right hand servo by moving it to 0 degrees and back to 90 degrees.
+    """
+    if HARDWARE_AVAILABLE:
+        move_servo_gradually(Channel.HAND_RIGHT, 0.0, step=5.0)
+        move_servo_gradually(Channel.HAND_RIGHT, 90.0, step=5.0)
+    else:
+        logger.info("Waving (simulated, no hardware available)")
+
+
 def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     """
     Moves the eye and neck servos based on face coordinates.
@@ -117,7 +128,7 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
         else:
             new_neck_x = 74.0 + neck_x_angle_diff
     if new_neck_x != current_neck_x:
-        set_servo_angle(Channel.NECK_X, new_neck_x)
+        move_servo_gradually(Channel.NECK_X, new_neck_x)
 
     neck_y_angle_diff: float = y_val * 20.0 / height
     current_neck_y = servo_positions[Channel.NECK_Y.value]
@@ -128,7 +139,9 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
         else:
             new_neck_y = 20.0 + neck_y_angle_diff
     if new_neck_y != current_neck_y:
-        set_servo_angle(Channel.NECK_Y, new_neck_y)
+        move_servo_gradually(Channel.NECK_Y, new_neck_y)
+
+    wave()
 
 
 def center_servos() -> None:
