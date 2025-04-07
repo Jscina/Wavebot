@@ -1,7 +1,7 @@
 from enum import Enum
 import logging
 
-logging.basicConfig(level=logging.WARNING)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 FRAME_WIDTH = 320
@@ -11,8 +11,6 @@ USE_USB_CAMERA = False
 
 
 class Channel(Enum):
-    """Mapping of servo motor channels to their corresponding GPIO pins"""
-
     EYE_LEFT_X = 0
     EYE_LEFT_Y = 1
     EYE_RIGHT_X = 2
