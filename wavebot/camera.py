@@ -1,4 +1,3 @@
-from typing import Generator
 import cv2
 import sys
 from .config import FRAME_WIDTH, FRAME_HEIGHT, USE_USB_CAMERA, logger
@@ -11,45 +10,53 @@ except ImportError:
     PiRGBArray = None
 
 
-def camera_stream() -> Generator:
-    """
-    Yields frames from a PiCamera (if available) or a USB camera.
-    """
-    if USE_USB_CAMERA or PiCamera is None:
-        logger.info("Using USB camera")
-        cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-        cap.set(cv2.CAP_PROP_FPS, 30)
+class Camera:
+    def __init__(self):
+        self.use_usb = USE_USB_CAMERA or PiCamera is None
+        self.cap = None
+        self.camera = None
+        self.stream = None
+        self.iterator = None
 
-        if not cap.isOpened():
-            print("Could not open USB camera.", file=sys.stderr)
-            return
+        if self.use_usb:
+            logger.info("Using USB camera")
+            self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
+            self.cap.set(cv2.CAP_PROP_FPS, 30)
 
-        try:
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                yield frame
-        finally:
-            cap.release()
-    else:
-        logger.info("Using PiCamera")
-        camera = PiCamera()
-        try:
-            camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
-            camera.framerate = 30
-            stream = PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT))  # type: ignore
+            if not self.cap.isOpened():
+                print("Could not open USB camera.", file=sys.stderr)
+        else:
+            logger.info("Using PiCamera")
+            self.camera = PiCamera()  # type: ignore
+            self.camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
+            self.camera.framerate = 30
+            self.stream = PiRGBArray(self.camera, size=(FRAME_WIDTH, FRAME_HEIGHT))  # type: ignore
+            self.iterator = self.camera.capture_continuous(
+                self.stream, format="bgr", use_video_port=True
+            )
+
+    def read(self):
+        if self.use_usb:
+            if self.cap is None:
+                return None
+            ret, frame = self.cap.read()
+            return frame if ret else None
+        else:
             try:
-                for frame_data in camera.capture_continuous(
-                    stream, format="bgr", use_video_port=True
-                ):
-                    frame = frame_data.array
-                    yield frame
-                    stream.truncate(0)
-                    stream.seek(0)
-            finally:
-                stream.close()
-        finally:
-            camera.close()
+                frame_data = next(self.iterator)
+                frame = frame_data.array
+                self.stream.truncate(0)
+                self.stream.seek(0)
+                return frame
+            except StopIteration:
+                return None
+
+    def release(self):
+        if self.use_usb and self.cap:
+            self.cap.release()
+        elif self.camera:
+            if self.stream:
+                self.stream.close()
+            self.camera.close()

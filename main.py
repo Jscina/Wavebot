@@ -2,7 +2,7 @@ import cv2
 import time
 import concurrent.futures
 from wavebot import (
-    camera_stream,
+    Camera,
     center_servos,
     detect_faces,
     pick_face_to_track,
@@ -24,6 +24,7 @@ def on_face_detected() -> None:
 
 def main() -> None:
     global last_face_time, last_wave_time
+
     center_servos()
     last_face_time = time.time()
     last_wave_time = 0
@@ -31,37 +32,45 @@ def main() -> None:
     faces = []
     future = None
 
+    cam = Camera()
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-        for frame in camera_stream():
-            if future is None or future.done():
-                if future is not None:
-                    try:
-                        faces = future.result()
-                    except Exception as e:
-                        logger.error(f"Face detection failed: {e}")
-                        faces = []
-                future = executor.submit(detect_faces, frame.copy())
+        try:
+            while True:
+                frame = cam.read()
+                if frame is None:
+                    break
 
-            tracked = pick_face_to_track(faces)
-            face_found = draw_faces(frame, tracked, on_face_detected)
-            draw_quadrants(frame)
+                if future is None or future.done():
+                    if future is not None:
+                        try:
+                            faces = future.result()
+                        except Exception as e:
+                            logger.error(f"Face detection failed: {e}")
+                            faces = []
+                    future = executor.submit(detect_faces, frame.copy())
 
-            if face_found:
-                current_time = time.time()
-                if current_time - last_wave_time > WAVE_INTERVAL:
-                    wave()
-                    last_wave_time = current_time
+                tracked = pick_face_to_track(faces)
+                face_found = draw_faces(frame, tracked, on_face_detected)
+                draw_quadrants(frame)
 
-            cv2.imshow("Live Footage", frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
+                if face_found:
+                    current_time = time.time()
+                    if current_time - last_wave_time > WAVE_INTERVAL:
+                        wave()
+                        last_wave_time = current_time
 
-            if not face_found and (time.time() - last_face_time > 5):
-                logger.info("No face detected for 5 seconds. Centering servos.")
-                center_servos()
-                last_face_time = time.time()
+                cv2.imshow("Live Footage", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    break
 
-    cv2.destroyAllWindows()
+                if not face_found and (time.time() - last_face_time > 5):
+                    logger.info("No face detected for 5 seconds. Centering servos.")
+                    center_servos()
+                    last_face_time = time.time()
+        finally:
+            cam.release()
+            cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
