@@ -1,5 +1,6 @@
 import cv2
 import time
+import threading
 import concurrent.futures
 from picamera import PiCamera
 from picamera.array import PiRGBArray
@@ -15,11 +16,20 @@ from wavebot import (
 from wavebot.config import FRAME_WIDTH, FRAME_HEIGHT
 
 
+def wave_in_thread():
+    """Run the wave function in a separate thread"""
+    thread = threading.Thread(target=wave)
+    thread.daemon = True  # Thread will exit when main program exits
+    thread.start()
+    return thread
+
+
 def main() -> None:
     center_servos()
     last_face_time = time.time()
     last_wave_time = 0
     WAVE_INTERVAL = 5
+    wave_thread = None
 
     with PiCamera() as camera:
         camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
@@ -33,19 +43,23 @@ def main() -> None:
                 ):
                     frame = frame_data.array
 
-                    # Submit face detection directly - just like the original code
+                    # Submit face detection directly
                     future = executor.submit(detect_faces, frame.copy())
-                    faces = future.result()  # Wait for detection to complete
+                    faces = future.result()
 
                     tracked = pick_face_to_track(faces)
                     face_found = draw_faces(frame, tracked, lambda: None)
                     draw_quadrants(frame)
 
                     current_time = time.time()
-                    if face_found and (current_time - last_wave_time > WAVE_INTERVAL):
-                        wave()
-                        last_wave_time = current_time
+                    if face_found:
                         last_face_time = current_time
+                        # Only wave if enough time has passed and we're not already waving
+                        if current_time - last_wave_time > WAVE_INTERVAL and (
+                            wave_thread is None or not wave_thread.is_alive()
+                        ):
+                            wave_thread = wave_in_thread()
+                            last_wave_time = current_time
 
                     cv2.imshow("Live Footage", frame)
                     stream.truncate(0)
