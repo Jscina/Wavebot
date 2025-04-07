@@ -20,31 +20,34 @@ def main() -> None:
     last_face_time = time.time()
     last_wave_time = 0
     WAVE_INTERVAL = 5
-    faces = []
-    future = None
 
     with PiCamera() as camera:
         camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
         camera.framerate = 30
         with PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT)) as stream:
             center_servos()
-            last_face_time = time.time()
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                # Start the first face detection task
+                future = executor.submit(
+                    detect_faces, None
+                )  # We'll replace this in the loop
+
                 for frame_data in camera.capture_continuous(
                     stream, format="bgr", use_video_port=True
                 ):
                     frame = frame_data.array
 
-                    if future is not None and future.done():
-                        try:
-                            faces = future.result()
-                        except Exception as e:
-                            logger.error(f"Face detection failed: {e}")
-                            faces = []
-                        future = executor.submit(detect_faces, frame.copy())
-                    elif future is None:
-                        future = executor.submit(detect_faces, frame.copy())
+                    # Get results from previous detection and start new one immediately
+                    try:
+                        faces = future.result()
+                    except Exception as e:
+                        logger.error(f"Face detection failed: {e}")
+                        faces = []
 
+                    # Immediately submit the next detection task with the current frame
+                    future = executor.submit(detect_faces, frame.copy())
+
+                    # Process the results from the previous frame
                     tracked = pick_face_to_track(faces)
                     face_found = draw_faces(frame, tracked, lambda: None)
                     draw_quadrants(frame)
@@ -63,6 +66,8 @@ def main() -> None:
                     if not face_found and (current_time - last_face_time > 5):
                         logger.info("No face detected for 5 seconds. Centering servos.")
                         center_servos()
+                        last_face_time = current_time
+                    elif face_found:
                         last_face_time = current_time
 
     cv2.destroyAllWindows()
