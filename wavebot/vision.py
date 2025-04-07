@@ -17,7 +17,7 @@ def detect_faces(frame: np.ndarray) -> list[FaceBox]:
     Returns the output of detectMultiScale (typically a numpy array of bounding boxes).
     """
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6)
     if faces is None or len(faces) == 0:
         return []
     return list(faces)  # type: ignore
@@ -78,7 +78,7 @@ def draw_faces(
     offset_x = center_x - origin_x
     offset_y = origin_y - center_y
 
-    update_servos(offset_x, offset_y, FRAME_WIDTH, FRAME_HEIGHT)
+    update_servos(-offset_x, offset_y, FRAME_WIDTH, FRAME_HEIGHT)
     on_face_detected()
 
     cv2.putText(

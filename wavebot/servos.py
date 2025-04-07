@@ -1,5 +1,4 @@
 import time
-import math
 from .config import Channel, SERVO_LIMITS, logger
 
 HARDWARE_AVAILABLE = False
@@ -71,27 +70,22 @@ def move_servo_gradually(
     set_servo_angle(channel, target_angle)
 
 
-def sigmoid(x: float) -> float:
-    return 1 / (1 + math.exp(-x))
-
-
 def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     """
     Updates servo angles based on the x and y offsets from the frame center.
     Uses a non-linear (sigmoid) mapping for smooth adjustments.
     """
     linear_factor = (x_val * 50.0) / width
-    smooth_factor = linear_factor * sigmoid(linear_factor / 10.0)
 
-    left_eye_x = 125.0 + smooth_factor
-    right_eye_x = 130.0 + smooth_factor
+    left_eye_x = 125.0 + linear_factor
+    right_eye_x = 130.0 + linear_factor
 
     # vertical_factor = (y_val * 20.0) / height
     # left_eye_y = 110.0 - vertical_factor
     # right_eye_y = 110.0 + vertical_factor
 
     logger.info(
-        f"update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}"
+        f"update_servos: x_val={x_val}, y_val={y_val}, linear_factor={linear_factor:.2f}"
     )
     set_servo_angle(Channel.EYE_LEFT_X, left_eye_x)
     set_servo_angle(Channel.EYE_RIGHT_X, right_eye_x)
