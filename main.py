@@ -26,28 +26,17 @@ def main() -> None:
         camera.framerate = 30
         with PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT)) as stream:
             center_servos()
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                # Start the first face detection task
-                future = executor.submit(
-                    detect_faces, None
-                )  # We'll replace this in the loop
 
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                 for frame_data in camera.capture_continuous(
                     stream, format="bgr", use_video_port=True
                 ):
                     frame = frame_data.array
 
-                    # Get results from previous detection and start new one immediately
-                    try:
-                        faces = future.result()
-                    except Exception as e:
-                        logger.error(f"Face detection failed: {e}")
-                        faces = []
-
-                    # Immediately submit the next detection task with the current frame
+                    # Submit face detection directly - just like the original code
                     future = executor.submit(detect_faces, frame.copy())
+                    faces = future.result()  # Wait for detection to complete
 
-                    # Process the results from the previous frame
                     tracked = pick_face_to_track(faces)
                     face_found = draw_faces(frame, tracked, lambda: None)
                     draw_quadrants(frame)
@@ -56,6 +45,7 @@ def main() -> None:
                     if face_found and (current_time - last_wave_time > WAVE_INTERVAL):
                         wave()
                         last_wave_time = current_time
+                        last_face_time = current_time
 
                     cv2.imshow("Live Footage", frame)
                     stream.truncate(0)
@@ -66,8 +56,6 @@ def main() -> None:
                     if not face_found and (current_time - last_face_time > 5):
                         logger.info("No face detected for 5 seconds. Centering servos.")
                         center_servos()
-                        last_face_time = current_time
-                    elif face_found:
                         last_face_time = current_time
 
     cv2.destroyAllWindows()
