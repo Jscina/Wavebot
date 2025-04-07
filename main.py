@@ -28,10 +28,19 @@ def main() -> None:
     last_face_time = time.time()
     last_wave_time = 0
 
+    faces = []
+    future = None
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
         for frame in camera_stream():
-            future = executor.submit(detect_faces, frame)
-            faces = future.result()
+            if future is None or future.done():
+                if future is not None:
+                    try:
+                        faces = future.result()
+                    except Exception as e:
+                        logger.error(f"Face detection failed: {e}")
+                        faces = []
+                future = executor.submit(detect_faces, frame.copy())
 
             tracked = pick_face_to_track(faces)
             face_found = draw_faces(frame, tracked, on_face_detected)
