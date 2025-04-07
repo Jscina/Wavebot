@@ -1,4 +1,5 @@
 import time
+import math
 from .config import Channel, SERVO_LIMITS, logger
 
 HARDWARE_AVAILABLE = False
@@ -70,44 +71,47 @@ def move_servo_gradually(
     set_servo_angle(channel, target_angle)
 
 
+def sigmoid(x: float) -> float:
+    return 1 / (1 + math.exp(-x))
+
+
 def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     """
     Updates servo angles based on the x and y offsets from the frame center.
     Uses a non-linear (sigmoid) mapping for smooth adjustments.
     """
     linear_factor = (x_val * 50.0) / width
+    smooth_factor = linear_factor * sigmoid(linear_factor / 10.0)
 
-    left_eye_x = 125.0 + linear_factor
-    right_eye_x = 130.0 + linear_factor
-
-    # vertical_factor = (y_val * 20.0) / height
-    # left_eye_y = 110.0 - vertical_factor
-    # right_eye_y = 110.0 + vertical_factor
+    left_eye_x = 125.0 + smooth_factor
+    right_eye_x = 130.0 + smooth_factor
 
     logger.info(
-        f"update_servos: x_val={x_val}, y_val={y_val}, linear_factor={linear_factor:.2f}"
+        f"update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}"
     )
     set_servo_angle(Channel.EYE_LEFT_X, left_eye_x)
     set_servo_angle(Channel.EYE_RIGHT_X, right_eye_x)
-    # set_servo_angle(Channel.EYE_LEFT_Y, left_eye_y)
-    # set_servo_angle(Channel.EYE_RIGHT_Y, right_eye_y)
 
     neck_x_center = 70.0
-    # neck_y_center = 75.0
-    neck_x_diff = (x_val * 25.0) / width
-    # neck_y_diff = (y_val * 20.0) / height
+    neck_x_min = 20.0
+    neck_x_max = 110.0
 
-    new_neck_x = (
-        neck_x_center + neck_x_diff if abs(x_val) > (width // 6) else neck_x_center
-    )
-    # new_neck_y = (
-    #     neck_y_center + neck_y_diff if abs(y_val) > (height // 6) else neck_y_center
-    # )
+    movement_percent = min(1.0, max(-1.0, x_val / (width / 2)))
 
-    if new_neck_x != servo_positions.get(Channel.NECK_X.value):
-        move_servo_gradually(Channel.NECK_X, new_neck_x)
-    # if new_neck_y != servo_positions.get(Channel.NECK_Y.value):
-    #    move_servo_gradually(Channel.NECK_Y, new_neck_y)
+    if movement_percent < 0:
+        new_neck_x = neck_x_center + (movement_percent * (neck_x_center - neck_x_min))
+    else:
+        new_neck_x = neck_x_center + (movement_percent * (neck_x_max - neck_x_center))
+
+    if abs(x_val) > (width // 6):
+        logger.info(
+            f"NECK MOVEMENT: x_val={x_val}, percent={movement_percent:.2f}, new_angle={new_neck_x:.2f}"
+        )
+        if (
+            abs(new_neck_x - servo_positions.get(Channel.NECK_X.value, neck_x_center))
+            > 1.0
+        ):
+            move_servo_gradually(Channel.NECK_X, new_neck_x)
 
 
 def wave() -> None:
