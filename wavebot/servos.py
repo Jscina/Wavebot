@@ -86,34 +86,46 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     left_eye_x = 125.0 + smooth_factor
     right_eye_x = 130.0 + smooth_factor
 
-    vertical_factor = (y_val * 20.0) / height
-    left_eye_y = 110.0 - vertical_factor
-    right_eye_y = 110.0 + vertical_factor
+    # vertical_factor = (y_val * 20.0) / height
+    # left_eye_y = 110.0 - vertical_factor
+    # right_eye_y = 110.0 + vertical_factor
 
     logger.info(
         f"update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}"
     )
     set_servo_angle(Channel.EYE_LEFT_X, left_eye_x)
     set_servo_angle(Channel.EYE_RIGHT_X, right_eye_x)
-    set_servo_angle(Channel.EYE_LEFT_Y, left_eye_y)
-    set_servo_angle(Channel.EYE_RIGHT_Y, right_eye_y)
+    # set_servo_angle(Channel.EYE_LEFT_Y, left_eye_y)
+    # set_servo_angle(Channel.EYE_RIGHT_Y, right_eye_y)
 
     neck_x_center = 70.0
-    neck_y_center = 75.0
+    # neck_y_center = 75.0
     neck_x_diff = (x_val * 25.0) / width
-    neck_y_diff = (y_val * 20.0) / height
+    # neck_y_diff = (y_val * 20.0) / height
 
     new_neck_x = (
         neck_x_center + neck_x_diff if abs(x_val) > (width // 6) else neck_x_center
     )
-    new_neck_y = (
-        neck_y_center + neck_y_diff if abs(y_val) > (height // 6) else neck_y_center
-    )
+    # new_neck_y = (
+    #     neck_y_center + neck_y_diff if abs(y_val) > (height // 6) else neck_y_center
+    # )
 
     if new_neck_x != servo_positions.get(Channel.NECK_X.value):
         move_servo_gradually(Channel.NECK_X, new_neck_x)
-    if new_neck_y != servo_positions.get(Channel.NECK_Y.value):
-        move_servo_gradually(Channel.NECK_Y, new_neck_y)
+    # if new_neck_y != servo_positions.get(Channel.NECK_Y.value):
+    #    move_servo_gradually(Channel.NECK_Y, new_neck_y)
+
+
+def wave() -> None:
+    """
+    Waves at the person using smooth servo movement from 0° to 90°.
+    """
+    logger.info("Waving")
+    if not HARDWARE_AVAILABLE:
+        return
+    for _ in range(3):
+        move_servo_gradually(Channel.HAND_RIGHT, 0, step=5, delay=0.05)
+        move_servo_gradually(Channel.HAND_RIGHT, 90, step=5, delay=0.05)
 
 
 def center_servos() -> None:

@@ -1,8 +1,6 @@
 from typing import Generator
 import cv2
-import numpy as np
 import sys
-
 from .config import FRAME_WIDTH, FRAME_HEIGHT, USE_USB_CAMERA, logger
 
 try:
@@ -13,10 +11,9 @@ except ImportError:
     PiRGBArray = None
 
 
-def camera_stream() -> Generator[np.ndarray, None, None]:
+def camera_stream() -> Generator:
     """
-    Yields frames (as np.ndarray) from either PiCamera (if USE_USB_CAMERA=False)
-    or from USB camera via OpenCV VideoCapture (if USE_USB_CAMERA=True).
+    Yields frames from a PiCamera (if available) or a USB camera.
     """
     if USE_USB_CAMERA or PiCamera is None:
         logger.info("Using USB camera")
@@ -37,7 +34,6 @@ def camera_stream() -> Generator[np.ndarray, None, None]:
                 yield frame
         finally:
             cap.release()
-
     else:
         logger.info("Using PiCamera")
         camera = PiCamera()
@@ -51,7 +47,6 @@ def camera_stream() -> Generator[np.ndarray, None, None]:
                 ):
                     frame = frame_data.array
                     yield frame
-                    # Clear the PiRGBArray to prepare for next frame
                     stream.truncate(0)
                     stream.seek(0)
             finally:
