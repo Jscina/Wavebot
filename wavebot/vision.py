@@ -78,7 +78,7 @@ def draw_faces(
     offset_x = center_x - origin_x
     offset_y = origin_y - center_y
 
-    update_servos(-offset_x, offset_y, FRAME_WIDTH, FRAME_HEIGHT)
+    update_servos(offset_x, offset_y, FRAME_WIDTH, FRAME_HEIGHT)
     on_face_detected()
 
     cv2.putText(
