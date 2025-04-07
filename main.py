@@ -19,7 +19,7 @@ from wavebot.config import FRAME_WIDTH, FRAME_HEIGHT
 def wave_in_thread():
     """Run the wave function in a separate thread"""
     thread = threading.Thread(target=wave)
-    thread.daemon = True  # Thread will exit when main program exits
+    thread.daemon = True
     thread.start()
     return thread
 
@@ -43,7 +43,6 @@ def main() -> None:
                 ):
                     frame = frame_data.array
 
-                    # Submit face detection directly
                     future = executor.submit(detect_faces, frame.copy())
                     faces = future.result()
 
@@ -54,7 +53,6 @@ def main() -> None:
                     current_time = time.time()
                     if face_found:
                         last_face_time = current_time
-                        # Only wave if enough time has passed and we're not already waving
                         if current_time - last_wave_time > WAVE_INTERVAL and (
                             wave_thread is None or not wave_thread.is_alive()
                         ):
