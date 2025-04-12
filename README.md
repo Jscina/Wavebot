@@ -205,3 +205,9 @@ The system is designed to handle hardware limitations:
 - If the PCA9685 hardware is unavailable, the system switches to simulation mode.
 - If the PiCamera is unavailable, it defaults to using a USB camera.
 - All hardware interactions are logged for debugging purposes.
+
+### Note on Fallback Logic: 
+Originally, Wavebot included fallback functionality to simulate servo and camera behavior in environments without hardware. However, due to
+performance constraints on the Raspberry Pi, this logic was removed in favor of more responsive, real-time tracking. The codebase remains modular and
+can be extended to reintroduce simulation support in future iterations. This project now serves as the launch point for future capstone groups continuing
+hardware-focused development
