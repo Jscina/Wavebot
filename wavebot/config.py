@@ -19,14 +19,14 @@ class Channel(Enum):
     NECK_X = 8
     NECK_Y = 9
     
-EYE_LEFT_X_CENTER = 125.0
+EYE_LEFT_X_CENTER = 135.0
 EYE_RIGHT_X_CENTER = 125.0
 NECK_X_CENTER = 70.0
 HAND_RIGHT_CENTER = 45.0
 
 
 SERVO_LIMITS = {
-    Channel.EYE_LEFT_X.value: (100.0, 130.0),
+    Channel.EYE_LEFT_X.value: (100.0, 180.0),
     Channel.EYE_RIGHT_X.value: (100.0, 180.0),
     Channel.NECK_X.value: (20.0, 110.0),
 }

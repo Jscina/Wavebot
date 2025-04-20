@@ -81,7 +81,7 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     smooth_factor = linear_factor * sigmoid(linear_factor / 10.0)
 
     left_eye_x = EYE_LEFT_X_CENTER + smooth_factor
-    right_eye_x = EYE_RIGHT_X_CENTER - smooth_factor
+    right_eye_x = EYE_RIGHT_X_CENTER + smooth_factor
 
     logger.info(
         f"update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}"
@@ -92,9 +92,9 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     movement_percent = min(1.0, max(-1.0, x_val / (width / 2)))
 
     if movement_percent < 0:
-        new_neck_x = NECK_X_CENTER + (movement_percent * (NECK_X_CENTER - SERVO_LIMITS[Channel.NECK_X][0]))
+        new_neck_x = NECK_X_CENTER + (movement_percent * (NECK_X_CENTER - SERVO_LIMITS[Channel.NECK_X.value][0]))
     else:
-        new_neck_x = NECK_X_CENTER + (movement_percent * (SERVO_LIMITS[Channel.NECK_X][1] - neck_x_center))
+        new_neck_x = NECK_X_CENTER + (movement_percent * (SERVO_LIMITS[Channel.NECK_X.value][1] - NECK_X_CENTER))
 
     if abs(x_val) > (width // 6):
         logger.info(
