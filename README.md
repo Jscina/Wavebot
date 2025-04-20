@@ -2,7 +2,7 @@
 
 A Raspberry Pi‑powered robot that detects faces with OpenCV, tracks them with two eye servos (plus neck pan) and greets people with a mechanical wave. All logic is pure‑Python; if the PCA9685 driver board or a camera is missing the code automatically switches to simulation mode so you can still develop and test.
 
-![Watch the video](https://youtu.be/RK-wpE2spj0)
+[![Watch the demo](https://img.youtube.com/vi/RK-wpE2spj0/0.jpg)](https://youtu.be/RK-wpE2spj0)
 
 ---
 
