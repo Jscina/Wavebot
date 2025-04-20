@@ -1,66 +1,75 @@
-import argparse
-import logging
 import cv2
 import time
+import threading
+import concurrent.futures
+from picamera import PiCamera
+from picamera.array import PiRGBArray
 from wavebot import (
-    ServoController,
-    camera_stream,
+    center_servos,
     detect_faces,
+    pick_face_to_track,
     draw_faces,
     draw_quadrants,
     logger,
+    wave,
 )
-from wavebot.vision import FaceBoxList
+from wavebot.config import FRAME_WIDTH, FRAME_HEIGHT
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--debug", action="store_true", help="Enable logging")
-args, _ = parser.parse_known_args()
-ENABLE_LOGGING = args.debug
-
-if ENABLE_LOGGING:
-    logger.setLevel(logging.INFO)
-else:
-    logger.setLevel(logging.WARNING)
+def wave_in_thread():
+    """Run the wave function in a separate thread"""
+    thread = threading.Thread(target=wave)
+    thread.daemon = True
+    thread.start()
+    return thread
 
 
 def main() -> None:
-    """
-    Main loop for face detection and servo control.
-    """
-    servo_controller = ServoController()
-    servo_controller.start()
-    servo_controller.queue_center_servos()
+    center_servos()
     last_face_time = time.time()
+    last_wave_time = 0
+    WAVE_INTERVAL = 5
+    wave_thread = None
 
-    frame_count = 0
-    faces: FaceBoxList = []
+    with PiCamera() as camera:
+        camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
+        camera.framerate = 30
+        with PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT)) as stream:
+            center_servos()
 
-    for frame in camera_stream():
-        frame_count += 1
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                for frame_data in camera.capture_continuous(
+                    stream, format="bgr", use_video_port=True
+                ):
+                    frame = frame_data.array
 
-        if frame_count % 3 == 0:
-            faces = detect_faces(frame)
+                    future = executor.submit(detect_faces, frame.copy())
+                    faces = future.result()
 
-        def on_face_detected() -> None:
-            nonlocal last_face_time
-            last_face_time = time.time()
+                    tracked = pick_face_to_track(faces)
+                    face_found = draw_faces(frame, tracked, lambda: None)
+                    draw_quadrants(frame)
 
-        face_detected = draw_faces(servo_controller, frame, faces, on_face_detected)
-        draw_quadrants(frame)
+                    current_time = time.time()
+                    if face_found:
+                        last_face_time = current_time
+                        if current_time - last_wave_time > WAVE_INTERVAL and (
+                            wave_thread is None or not wave_thread.is_alive()
+                        ):
+                            wave_thread = wave_in_thread()
+                            last_wave_time = current_time
 
-        cv2.imshow("Live Footage", frame)
+                    cv2.imshow("Live Footage", frame)
+                    stream.truncate(0)
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
 
-        # If no face for 5s, recenter servos
-        if not face_detected and (time.time() - last_face_time > 5):
-            logger.info("No face detected for 5s, recentering servos")
-            servo_controller.queue_center_servos()
-            last_face_time = time.time()
+                    if not face_found and (current_time - last_face_time > 5):
+                        logger.info("No face detected for 5 seconds. Centering servos.")
+                        center_servos()
+                        last_face_time = current_time
 
-    servo_controller.stop()
     cv2.destroyAllWindows()
 
 

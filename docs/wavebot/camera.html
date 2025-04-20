@@ -45,17 +45,16 @@ el.replaceWith(d);
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
 <dt id="wavebot.camera.camera_stream"><code class="name flex">
-<span>def <span class="ident">camera_stream</span></span>(<span>) ‑> Generator[numpy.ndarray, None, None]</span>
+<span>def <span class="ident">camera_stream</span></span>(<span>) ‑> Generator</span>
 </code></dt>
 <dd>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def camera_stream() -&gt; Generator[np.ndarray, None, None]:
+<pre><code class="python">def camera_stream() -&gt; Generator:
     &#34;&#34;&#34;
-    Yields frames (as np.ndarray) from either PiCamera (if USE_USB_CAMERA=False)
-    or from USB camera via OpenCV VideoCapture (if USE_USB_CAMERA=True).
+    Yields frames from a PiCamera (if available) or a USB camera.
     &#34;&#34;&#34;
     if USE_USB_CAMERA or PiCamera is None:
         logger.info(&#34;Using USB camera&#34;)
@@ -76,7 +75,6 @@ el.replaceWith(d);
                 yield frame
         finally:
             cap.release()
-
     else:
         logger.info(&#34;Using PiCamera&#34;)
         camera = PiCamera()
@@ -90,7 +88,6 @@ el.replaceWith(d);
                 ):
                     frame = frame_data.array
                     yield frame
-                    # Clear the PiRGBArray to prepare for next frame
                     stream.truncate(0)
                     stream.seek(0)
             finally:
@@ -98,8 +95,7 @@ el.replaceWith(d);
         finally:
             camera.close()</code></pre>
 </details>
-<div class="desc"><p>Yields frames (as np.ndarray) from either PiCamera (if USE_USB_CAMERA=False)
-or from USB camera via OpenCV VideoCapture (if USE_USB_CAMERA=True).</p></div>
+<div class="desc"><p>Yields frames from a PiCamera (if available) or a USB camera.</p></div>
 </dd>
 </dl>
 </section>

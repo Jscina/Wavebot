@@ -44,6 +44,59 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
+<dt id="wavebot.servos.center_servos"><code class="name flex">
+<span>def <span class="ident">center_servos</span></span>(<span>) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def center_servos() -&gt; None:
+    &#34;&#34;&#34;
+    Centers all servos to their default positions.
+    &#34;&#34;&#34;
+    logger.info(&#34;Centering servos&#34;)
+    set_servo_angle(Channel.EYE_LEFT_X, 140.0)
+    set_servo_angle(Channel.EYE_LEFT_Y, 90.0)
+    set_servo_angle(Channel.EYE_RIGHT_X, 155.0)
+    set_servo_angle(Channel.EYE_RIGHT_Y, 115.0)
+    set_servo_angle(Channel.NECK_X, 70.0)
+    set_servo_angle(Channel.NECK_Y, 75.0)
+    set_servo_angle(Channel.HAND_RIGHT, 45.0)</code></pre>
+</details>
+<div class="desc"><p>Centers all servos to their default positions.</p></div>
+</dd>
+<dt id="wavebot.servos.move_servo_gradually"><code class="name flex">
+<span>def <span class="ident">move_servo_gradually</span></span>(<span>channel: <a title="wavebot.config.Channel" href="config.html#wavebot.config.Channel">Channel</a>,<br>target_angle: float,<br>step: float = 1.0,<br>delay: float = 0.05) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def move_servo_gradually(
+    channel: Channel, target_angle: float, step: float = 1.0, delay: float = 0.05
+) -&gt; None:
+    &#34;&#34;&#34;
+    Smoothly moves a servo from its current position to the target angle.
+    &#34;&#34;&#34;
+    current_angle = servo_positions.get(channel.value, 90.0)
+    servo_min, servo_max = SERVO_LIMITS.get(channel.value, (0.0, 180.0))
+    target_angle = max(servo_min, min(target_angle, servo_max))
+
+    if current_angle &lt; target_angle:
+        angle_range = range(int(current_angle), int(target_angle) + 1, int(step))
+    else:
+        angle_range = range(int(current_angle), int(target_angle) - 1, -int(step))
+
+    for ang in angle_range:
+        set_servo_angle(channel, float(ang))
+        time.sleep(delay)
+    set_servo_angle(channel, target_angle)</code></pre>
+</details>
+<div class="desc"><p>Smoothly moves a servo from its current position to the target angle.</p></div>
+</dd>
 <dt id="wavebot.servos.set_servo_angle"><code class="name flex">
 <span>def <span class="ident">set_servo_angle</span></span>(<span>channel: <a title="wavebot.config.Channel" href="config.html#wavebot.config.Channel">Channel</a>,<br>angle: float) ‑> None</span>
 </code></dt>
@@ -54,372 +107,113 @@ el.replaceWith(d);
 </summary>
 <pre><code class="python">def set_servo_angle(channel: Channel, angle: float) -&gt; None:
     &#34;&#34;&#34;
-    Immediately sets the servo at &#39;channel&#39; to &#39;angle&#39; degrees on this thread,
-    clamped to a safe range. Updates SERVO_POSITIONS.
-    This is called inside the worker thread (or if hardware is not available).
+    Sets the servo at the given channel to the specified angle.
+    Angle is clamped based on SERVO_LIMITS and logged.
     &#34;&#34;&#34;
-    old_angle = SERVO_POSITIONS.get(channel.value, 0.0)
+    old_angle = servo_positions.get(channel.value, 0.0)
     servo_min, servo_max = SERVO_LIMITS.get(channel.value, (0.0, 180.0))
     clamped_angle = max(servo_min, min(angle, servo_max))
-    servo_type = channel.__class__.__name__
+    logger.info(
+        f&#34;set_servo_angle({channel.name}): old={old_angle:.2f} → requested={angle:.2f} → clamped={clamped_angle:.2f} (HW={HARDWARE_AVAILABLE})&#34;
+    )
+    servo_positions[channel.value] = clamped_angle
+
+    if HARDWARE_AVAILABLE:
+        pulse_length = (clamped_angle * 1000 // 180) + 1000
+        duty_cycle = int(pulse_length * 65535 / (1 / pwm.frequency) / 1_000_000)
+        pwm.channels[channel.value].duty_cycle = duty_cycle</code></pre>
+</details>
+<div class="desc"><p>Sets the servo at the given channel to the specified angle.
+Angle is clamped based on SERVO_LIMITS and logged.</p></div>
+</dd>
+<dt id="wavebot.servos.sigmoid"><code class="name flex">
+<span>def <span class="ident">sigmoid</span></span>(<span>x: float) ‑> float</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def sigmoid(x: float) -&gt; float:
+    return 1 / (1 + math.exp(-x))</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="wavebot.servos.update_servos"><code class="name flex">
+<span>def <span class="ident">update_servos</span></span>(<span>x_val: int, y_val: int, width: int, height: int) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update_servos(x_val: int, y_val: int, width: int, height: int) -&gt; None:
+    &#34;&#34;&#34;
+    Updates servo angles based on the x and y offsets from the frame center.
+    Uses a non-linear (sigmoid) mapping for smooth adjustments.
+    &#34;&#34;&#34;
+    linear_factor = (x_val * 50.0) / width
+    smooth_factor = linear_factor * sigmoid(linear_factor / 10.0)
+
+    left_eye_x = 125.0 + smooth_factor
+    right_eye_x = 130.0 + smooth_factor
+
+    # vertical_factor = (y_val * 20.0) / height
+    # left_eye_y = 110.0 - vertical_factor
+    # right_eye_y = 110.0 + vertical_factor
 
     logger.info(
-        f&#34;set_servo_angle({servo_type}.{channel.name}): &#34;
-        f&#34;old={old_angle:.2f} → requested={angle:.2f} → clamped={clamped_angle:.2f} &#34;
-        f&#34;(HW={HARDWARE_AVAILABLE})&#34;
+        f&#34;update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}&#34;
     )
+    set_servo_angle(Channel.EYE_LEFT_X, left_eye_x)
+    set_servo_angle(Channel.EYE_RIGHT_X, right_eye_x)
+    # set_servo_angle(Channel.EYE_LEFT_Y, left_eye_y)
+    # set_servo_angle(Channel.EYE_RIGHT_Y, right_eye_y)
 
-    SERVO_POSITIONS[channel.value] = clamped_angle
+    neck_x_center = 70.0
+    # neck_y_center = 75.0
+    neck_x_diff = (x_val * 25.0) / width
+    # neck_y_diff = (y_val * 20.0) / height
 
+    new_neck_x = (
+        neck_x_center + neck_x_diff if abs(x_val) &gt; (width // 6) else neck_x_center
+    )
+    # new_neck_y = (
+    #     neck_y_center + neck_y_diff if abs(y_val) &gt; (height // 6) else neck_y_center
+    # )
+
+    if new_neck_x != servo_positions.get(Channel.NECK_X.value):
+        move_servo_gradually(Channel.NECK_X, new_neck_x)
+    # if new_neck_y != servo_positions.get(Channel.NECK_Y.value):
+    #    move_servo_gradually(Channel.NECK_Y, new_neck_y)</code></pre>
+</details>
+<div class="desc"><p>Updates servo angles based on the x and y offsets from the frame center.
+Uses a non-linear (sigmoid) mapping for smooth adjustments.</p></div>
+</dd>
+<dt id="wavebot.servos.wave"><code class="name flex">
+<span>def <span class="ident">wave</span></span>(<span>) ‑> None</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def wave() -&gt; None:
+    &#34;&#34;&#34;
+    Waves at the person using smooth servo movement from 0° to 90°.
+    &#34;&#34;&#34;
+    logger.info(&#34;Waving&#34;)
     if not HARDWARE_AVAILABLE:
         return
-
-    pulse_length: float = (clamped_angle * 1000 // 180) + 1000
-    duty_cycle: int = int(pulse_length * 65535 / (1 / pwm.frequency) / 1_000_000)
-    pwm.channels[channel.value].duty_cycle = duty_cycle</code></pre>
+    for _ in range(3):
+        move_servo_gradually(Channel.HAND_RIGHT, 0, step=5, delay=0.05)
+        move_servo_gradually(Channel.HAND_RIGHT, 90, step=5, delay=0.05)</code></pre>
 </details>
-<div class="desc"><p>Immediately sets the servo at 'channel' to 'angle' degrees on this thread,
-clamped to a safe range. Updates SERVO_POSITIONS.
-This is called inside the worker thread (or if hardware is not available).</p></div>
+<div class="desc"><p>Waves at the person using smooth servo movement from 0° to 90°.</p></div>
 </dd>
 </dl>
 </section>
 <section>
-<h2 class="section-title" id="header-classes">Classes</h2>
-<dl>
-<dt id="wavebot.servos.ServoController"><code class="flex name class">
-<span>class <span class="ident">ServoController</span></span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class ServoController:
-    &#34;&#34;&#34;
-    Manages all servo commands via a background worker thread.
-    Commands are queued; the worker processes them sequentially.
-    Supports:
-      - Gradual movement
-      - Re-centering
-      - Face-tracking updates
-    &#34;&#34;&#34;
-
-    def __init__(self):
-        self._command_queue = Queue()
-        self._thread = Thread(target=self._worker, daemon=True)
-        self._running = False
-
-    def start(self):
-        &#34;&#34;&#34;Starts the worker thread if it&#39;s not already running.&#34;&#34;&#34;
-        if not self._running:
-            self._running = True
-            self._thread.start()
-            logger.info(&#34;Servo worker thread started.&#34;)
-
-    def stop(self):
-        &#34;&#34;&#34;Stops the worker thread gracefully.&#34;&#34;&#34;
-        self._command_queue.put(None)
-        self._thread.join()
-        logger.info(&#34;Servo worker thread stopped.&#34;)
-
-    def queue_servo_angle(self, channel: Channel, angle: float):
-        &#34;&#34;&#34;
-        Immediately queue a single servo angle command.
-        The worker will call &#39;set_servo_angle&#39; internally.
-        &#34;&#34;&#34;
-        self._command_queue.put((&#34;MOVE&#34;, channel, angle))
-
-    def queue_move_servo_gradually(
-        self,
-        channel: Channel,
-        target_angle: float,
-        step: float = 1.0,
-        delay: float = 0.1,
-    ):
-        &#34;&#34;&#34;
-        Moves the given servo channel from its current angle to &#39;target_angle&#39;,
-        step-by-step, inserting a small delay between each sub-step.
-        This entire motion is queued and processed asynchronously.
-        &#34;&#34;&#34;
-        current_angle = SERVO_POSITIONS.get(channel.value, 90.0)
-        servo_min, servo_max = SERVO_LIMITS.get(channel.value, (0.0, 180.0))
-        target_clamped = max(servo_min, min(target_angle, servo_max))
-
-        if current_angle &lt; target_clamped:
-            angle_range = range(int(current_angle), int(target_clamped) + 1, int(step))
-        else:
-            angle_range = range(int(current_angle), int(target_clamped) - 1, -int(step))
-
-        for ang in angle_range:
-            clamped_ang = max(servo_min, min(float(ang), servo_max))
-            self._command_queue.put((&#34;MOVE&#34;, channel, clamped_ang))
-            if delay &gt; 0:
-                self._command_queue.put((&#34;SLEEP&#34;, delay))
-
-        self._command_queue.put((&#34;MOVE&#34;, channel, target_clamped))
-
-    def queue_center_servos(self):
-        &#34;&#34;&#34;
-        Resets all servo motors to their original (default) positions
-        as stored in DEFAULT_SERVO_POSITIONS.
-        Each command is queued so they move in sequence, but not gradually.
-        &#34;&#34;&#34;
-        logger.info(f&#34;queue_center_servos() called (HW={HARDWARE_AVAILABLE})&#34;)
-        for channel_val, default_angle in DEFAULT_SERVO_POSITIONS.items():
-            channel = Channel(channel_val)
-            self._command_queue.put((&#34;MOVE&#34;, channel, default_angle))
-
-    def queue_update_servos(self, x_val: int, y_val: int, width: int, height: int):
-        &#34;&#34;&#34;
-        Moves the eye and neck servos based on face coordinates (async).
-        &#34;&#34;&#34;
-        logger.info(
-            f&#34;update_servos(x_val={x_val}, y_val={y_val}, width={width}, height={height})&#34;
-        )
-
-        eye_x_angle_diff: float = x_val * 50.0 / width
-        neck_x_angle_diff: float = x_val * 25.0 / width
-
-        if x_val &lt; 0:
-            self.queue_servo_angle(Channel.EYE_LEFT_X, 125.0 - eye_x_angle_diff)
-            self.queue_servo_angle(Channel.EYE_RIGHT_X, 130.0 - eye_x_angle_diff)
-        elif x_val &gt; 0:
-            self.queue_servo_angle(Channel.EYE_LEFT_X, 125.0 + eye_x_angle_diff)
-            self.queue_servo_angle(Channel.EYE_RIGHT_X, 130.0 + eye_x_angle_diff)
-
-        ley_angle: float = 110.0 - (y_val * (120.0 - 300.0) / height)
-        rey_angle: float = 110.0 + (y_val * (110.0 - 300.0) / height)
-        self.queue_servo_angle(Channel.EYE_LEFT_Y, ley_angle)
-        self.queue_servo_angle(Channel.EYE_RIGHT_Y, rey_angle)
-
-        current_neck_x = SERVO_POSITIONS[Channel.NECK_X.value]
-        new_neck_x = current_neck_x
-        if abs(x_val) &gt; width // 6:
-            if x_val &lt; 0:
-                new_neck_x = 74.0 - neck_x_angle_diff
-            else:
-                new_neck_x = 74.0 + neck_x_angle_diff
-        if new_neck_x != current_neck_x:
-            self.queue_move_servo_gradually(Channel.NECK_X, new_neck_x)
-
-        neck_y_angle_diff: float = y_val * 20.0 / height
-        current_neck_y = SERVO_POSITIONS[Channel.NECK_Y.value]
-        new_neck_y = current_neck_y
-        if abs(y_val) &gt; height // 6:
-            if y_val &gt; 0:
-                new_neck_y = 20.0 - neck_y_angle_diff
-            else:
-                new_neck_y = 20.0 + neck_y_angle_diff
-        if new_neck_y != current_neck_y:
-            self.queue_move_servo_gradually(Channel.NECK_Y, new_neck_y)
-
-    def _worker(self):
-        &#34;&#34;&#34;
-        Worker thread loop:
-          - Fetch commands from the queue
-          - &#39;MOVE&#39; =&gt; call set_servo_angle
-          - &#39;SLEEP&#39; =&gt; time.sleep
-          - None =&gt; exit
-        &#34;&#34;&#34;
-        while True:
-            command = self._command_queue.get()
-            if command is None:
-                break
-
-            cmd_type = command[0]
-            if cmd_type == &#34;MOVE&#34;:
-                _, channel, angle = command
-                set_servo_angle(channel, angle)
-
-            elif cmd_type == &#34;SLEEP&#34;:
-                _, duration = command
-                time.sleep(duration)
-
-            self._command_queue.task_done()</code></pre>
-</details>
-<div class="desc"><p>Manages all servo commands via a background worker thread.
-Commands are queued; the worker processes them sequentially.</p>
-<h2 id="supports">Supports</h2>
-<ul>
-<li>Gradual movement</li>
-<li>Re-centering</li>
-<li>Face-tracking updates</li>
-</ul></div>
-<h3>Methods</h3>
-<dl>
-<dt id="wavebot.servos.ServoController.queue_center_servos"><code class="name flex">
-<span>def <span class="ident">queue_center_servos</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def queue_center_servos(self):
-    &#34;&#34;&#34;
-    Resets all servo motors to their original (default) positions
-    as stored in DEFAULT_SERVO_POSITIONS.
-    Each command is queued so they move in sequence, but not gradually.
-    &#34;&#34;&#34;
-    logger.info(f&#34;queue_center_servos() called (HW={HARDWARE_AVAILABLE})&#34;)
-    for channel_val, default_angle in DEFAULT_SERVO_POSITIONS.items():
-        channel = Channel(channel_val)
-        self._command_queue.put((&#34;MOVE&#34;, channel, default_angle))</code></pre>
-</details>
-<div class="desc"><p>Resets all servo motors to their original (default) positions
-as stored in DEFAULT_SERVO_POSITIONS.
-Each command is queued so they move in sequence, but not gradually.</p></div>
-</dd>
-<dt id="wavebot.servos.ServoController.queue_move_servo_gradually"><code class="name flex">
-<span>def <span class="ident">queue_move_servo_gradually</span></span>(<span>self,<br>channel: <a title="wavebot.config.Channel" href="config.html#wavebot.config.Channel">Channel</a>,<br>target_angle: float,<br>step: float = 1.0,<br>delay: float = 0.1)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def queue_move_servo_gradually(
-    self,
-    channel: Channel,
-    target_angle: float,
-    step: float = 1.0,
-    delay: float = 0.1,
-):
-    &#34;&#34;&#34;
-    Moves the given servo channel from its current angle to &#39;target_angle&#39;,
-    step-by-step, inserting a small delay between each sub-step.
-    This entire motion is queued and processed asynchronously.
-    &#34;&#34;&#34;
-    current_angle = SERVO_POSITIONS.get(channel.value, 90.0)
-    servo_min, servo_max = SERVO_LIMITS.get(channel.value, (0.0, 180.0))
-    target_clamped = max(servo_min, min(target_angle, servo_max))
-
-    if current_angle &lt; target_clamped:
-        angle_range = range(int(current_angle), int(target_clamped) + 1, int(step))
-    else:
-        angle_range = range(int(current_angle), int(target_clamped) - 1, -int(step))
-
-    for ang in angle_range:
-        clamped_ang = max(servo_min, min(float(ang), servo_max))
-        self._command_queue.put((&#34;MOVE&#34;, channel, clamped_ang))
-        if delay &gt; 0:
-            self._command_queue.put((&#34;SLEEP&#34;, delay))
-
-    self._command_queue.put((&#34;MOVE&#34;, channel, target_clamped))</code></pre>
-</details>
-<div class="desc"><p>Moves the given servo channel from its current angle to 'target_angle',
-step-by-step, inserting a small delay between each sub-step.
-This entire motion is queued and processed asynchronously.</p></div>
-</dd>
-<dt id="wavebot.servos.ServoController.queue_servo_angle"><code class="name flex">
-<span>def <span class="ident">queue_servo_angle</span></span>(<span>self,<br>channel: <a title="wavebot.config.Channel" href="config.html#wavebot.config.Channel">Channel</a>,<br>angle: float)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def queue_servo_angle(self, channel: Channel, angle: float):
-    &#34;&#34;&#34;
-    Immediately queue a single servo angle command.
-    The worker will call &#39;set_servo_angle&#39; internally.
-    &#34;&#34;&#34;
-    self._command_queue.put((&#34;MOVE&#34;, channel, angle))</code></pre>
-</details>
-<div class="desc"><p>Immediately queue a single servo angle command.
-The worker will call 'set_servo_angle' internally.</p></div>
-</dd>
-<dt id="wavebot.servos.ServoController.queue_update_servos"><code class="name flex">
-<span>def <span class="ident">queue_update_servos</span></span>(<span>self, x_val: int, y_val: int, width: int, height: int)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def queue_update_servos(self, x_val: int, y_val: int, width: int, height: int):
-    &#34;&#34;&#34;
-    Moves the eye and neck servos based on face coordinates (async).
-    &#34;&#34;&#34;
-    logger.info(
-        f&#34;update_servos(x_val={x_val}, y_val={y_val}, width={width}, height={height})&#34;
-    )
-
-    eye_x_angle_diff: float = x_val * 50.0 / width
-    neck_x_angle_diff: float = x_val * 25.0 / width
-
-    if x_val &lt; 0:
-        self.queue_servo_angle(Channel.EYE_LEFT_X, 125.0 - eye_x_angle_diff)
-        self.queue_servo_angle(Channel.EYE_RIGHT_X, 130.0 - eye_x_angle_diff)
-    elif x_val &gt; 0:
-        self.queue_servo_angle(Channel.EYE_LEFT_X, 125.0 + eye_x_angle_diff)
-        self.queue_servo_angle(Channel.EYE_RIGHT_X, 130.0 + eye_x_angle_diff)
-
-    ley_angle: float = 110.0 - (y_val * (120.0 - 300.0) / height)
-    rey_angle: float = 110.0 + (y_val * (110.0 - 300.0) / height)
-    self.queue_servo_angle(Channel.EYE_LEFT_Y, ley_angle)
-    self.queue_servo_angle(Channel.EYE_RIGHT_Y, rey_angle)
-
-    current_neck_x = SERVO_POSITIONS[Channel.NECK_X.value]
-    new_neck_x = current_neck_x
-    if abs(x_val) &gt; width // 6:
-        if x_val &lt; 0:
-            new_neck_x = 74.0 - neck_x_angle_diff
-        else:
-            new_neck_x = 74.0 + neck_x_angle_diff
-    if new_neck_x != current_neck_x:
-        self.queue_move_servo_gradually(Channel.NECK_X, new_neck_x)
-
-    neck_y_angle_diff: float = y_val * 20.0 / height
-    current_neck_y = SERVO_POSITIONS[Channel.NECK_Y.value]
-    new_neck_y = current_neck_y
-    if abs(y_val) &gt; height // 6:
-        if y_val &gt; 0:
-            new_neck_y = 20.0 - neck_y_angle_diff
-        else:
-            new_neck_y = 20.0 + neck_y_angle_diff
-    if new_neck_y != current_neck_y:
-        self.queue_move_servo_gradually(Channel.NECK_Y, new_neck_y)</code></pre>
-</details>
-<div class="desc"><p>Moves the eye and neck servos based on face coordinates (async).</p></div>
-</dd>
-<dt id="wavebot.servos.ServoController.start"><code class="name flex">
-<span>def <span class="ident">start</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def start(self):
-    &#34;&#34;&#34;Starts the worker thread if it&#39;s not already running.&#34;&#34;&#34;
-    if not self._running:
-        self._running = True
-        self._thread.start()
-        logger.info(&#34;Servo worker thread started.&#34;)</code></pre>
-</details>
-<div class="desc"><p>Starts the worker thread if it's not already running.</p></div>
-</dd>
-<dt id="wavebot.servos.ServoController.stop"><code class="name flex">
-<span>def <span class="ident">stop</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def stop(self):
-    &#34;&#34;&#34;Stops the worker thread gracefully.&#34;&#34;&#34;
-    self._command_queue.put(None)
-    self._thread.join()
-    logger.info(&#34;Servo worker thread stopped.&#34;)</code></pre>
-</details>
-<div class="desc"><p>Stops the worker thread gracefully.</p></div>
-</dd>
-</dl>
-</dd>
-</dl>
 </section>
 </article>
 <nav id="sidebar">
@@ -434,22 +228,12 @@ The worker will call 'set_servo_angle' internally.</p></div>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
+<li><code><a title="wavebot.servos.center_servos" href="#wavebot.servos.center_servos">center_servos</a></code></li>
+<li><code><a title="wavebot.servos.move_servo_gradually" href="#wavebot.servos.move_servo_gradually">move_servo_gradually</a></code></li>
 <li><code><a title="wavebot.servos.set_servo_angle" href="#wavebot.servos.set_servo_angle">set_servo_angle</a></code></li>
-</ul>
-</li>
-<li><h3><a href="#header-classes">Classes</a></h3>
-<ul>
-<li>
-<h4><code><a title="wavebot.servos.ServoController" href="#wavebot.servos.ServoController">ServoController</a></code></h4>
-<ul class="">
-<li><code><a title="wavebot.servos.ServoController.queue_center_servos" href="#wavebot.servos.ServoController.queue_center_servos">queue_center_servos</a></code></li>
-<li><code><a title="wavebot.servos.ServoController.queue_move_servo_gradually" href="#wavebot.servos.ServoController.queue_move_servo_gradually">queue_move_servo_gradually</a></code></li>
-<li><code><a title="wavebot.servos.ServoController.queue_servo_angle" href="#wavebot.servos.ServoController.queue_servo_angle">queue_servo_angle</a></code></li>
-<li><code><a title="wavebot.servos.ServoController.queue_update_servos" href="#wavebot.servos.ServoController.queue_update_servos">queue_update_servos</a></code></li>
-<li><code><a title="wavebot.servos.ServoController.start" href="#wavebot.servos.ServoController.start">start</a></code></li>
-<li><code><a title="wavebot.servos.ServoController.stop" href="#wavebot.servos.ServoController.stop">stop</a></code></li>
-</ul>
-</li>
+<li><code><a title="wavebot.servos.sigmoid" href="#wavebot.servos.sigmoid">sigmoid</a></code></li>
+<li><code><a title="wavebot.servos.update_servos" href="#wavebot.servos.update_servos">update_servos</a></code></li>
+<li><code><a title="wavebot.servos.wave" href="#wavebot.servos.wave">wave</a></code></li>
 </ul>
 </li>
 </ul>

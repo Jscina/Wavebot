@@ -1,213 +1,194 @@
-# 👋 Wavebot Face Tracker
+# Wavebot Face Tracker
 
-A Raspberry Pi-powered robot that uses a camera to detect faces and move its eyes accordingly using servo motors.
+A Raspberry Pi-powered robot that uses a camera to detect faces and move servo motors (eyes, neck, etc.) to track them in real time. When a face is seen, Wavebot can also “wave” its arm!
 
-This project uses:
+## Table of Contents
 
-- OpenCV with a pre-trained DNN face detection model
-- Adafruit PCA9685 PWM controller
-- ServoKit for servo control
-- Camera support for both PiCamera and USB cameras
-- Modular Python code with clean separation between vision, servos, and logic
+- [Overview](#overview)
+- [Project Structure](#project-structure)
+- [Setup Instructions](#setup-instructions)
+  - [Prerequisites](#prerequisites)
+  - [Enable I2C & Camera](#enable-i2c--camera)
+  - [Install Dependencies](#install-dependencies)
+- [Running the Program](#running-the-program)
+- [How It Works](#how-it-works)
+- [Code Overview](#code-overview)
+- [Servo Channel Mapping](#servo-channel-mapping)
+- [Configuration](#configuration)
+- [Hardware Fallback](#hardware-fallback)
 
 ---
 
-## 📁 Project Structure
+## Overview
 
-```text
+Wavebot is a face-tracking robot that uses:
+
+- **OpenCV** with a **Haar cascade** (rather than a heavier DNN) for face detection
+- An **Adafruit PCA9685** PWM driver for multiple servo motors
+- **ServoKit** (or fallback simulation) for controlling servo angles
+- **concurrent.futures** for threading face detection without blocking servo updates
+- A “**wave**” function to greet people when it detects a face
+
+When a face enters view, Wavebot tracks it with its eyes and optionally waves. If a face disappears for 5 seconds, Wavebot re-centers its servos.
+
+---
+
+## Project Structure
+
+```
 wavebot/
 │
-├── main.py                  # Main application entry point
-├── calibrate.py                  # Main application entry point
-├── pyproject.toml           # Project dependencies and metadata
+├── main.py                    # Main entry point (threaded detection + wave logic)
+├── README.md                  # Documentation (this file)
 ├── wavebot/
-│   ├── __init__.py          # Package exports
-│   ├── camera.py            # Camera setup (PiCamera or USB camera)
-│   ├── config.py            # Constants (servo channels, frame size, camera settings)
-│   ├── servos.py            # Servo motor control logic
-│   └── vision.py            # Face detection & rendering logic
-├── model/                   # Face detection model files
-│   ├── deploy.prototxt      # Face detection model config
-│   └── res10_300x300...     # Pre-trained Caffe model
-└── README.md                # You're reading it :)
+│   ├── __init__.py            # Package exports
+│   ├── camera.py              # Camera setup (USB or PiCamera)
+│   ├── config.py              # Constants and logger setup
+│   ├── servos.py              # Servo motor logic (positions, wave, fallback)
+│   └── vision.py              # Haar cascade face detection + tracking
+└── model/
+    └── haarcascade_frontalface_default.xml  # Haar cascade for face detection
 ```
+
+- **`main.py`** orchestrates detection + servo control in a loop.
+- **`vision.py`** has functions for detecting faces (with Haar cascades), selecting a “tracked face,” and drawing overlays.
+- **`servos.py`** houses the servo logic (e.g., how angles map to PWM signals) plus the “wave” function.
+- **`config.py`** defines constants like `FRAME_WIDTH`, `FRAME_HEIGHT`, servo channel mappings, and servo limits.
+- **`camera.py`** yields frames from either a USB camera or a PiCamera.
 
 ---
 
-## ⚙️ Setup Instructions
+## Setup Instructions
 
-### 📌 Prerequisites
+### Prerequisites
 
-Run this on a **Raspberry Pi** with:
+- **Raspberry Pi** (recommended) or another Linux system
+- **PiCamera** or USB camera
+- **Adafruit PCA9685** connected via I2C
+- **Servo motors** for eyes, neck, and arm
+- **Python 3.7+** (or higher)
+- **Adequate power supply** (servos can draw significant current)
 
-- PiCamera module connected and enabled OR a USB camera
-- PCA9685 servo driver wired via I2C
-- 4+ servos wired to the PCA9685 board
-- Python 3.11+
-- Proper power supply for servos (IMPORTANT)
-
-### 🔧 Enable I2C & PiCamera
+### Enable I2C & Camera
 
 ```bash
 sudo raspi-config
-# Enable both I2C and Camera under Interfaces
+# Navigate to "Interface Options" and enable I2C.
+# Also enable the camera if you're using PiCamera.
 ```
 
-### 📦 Install Dependencies
+### Install Dependencies
 
 ```bash
 sudo apt update
 sudo apt install python3-pip libatlas-base-dev
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv python install 3.11
+pip3 install --upgrade pip
+pip3 install opencv-python adafruit-circuitpython-servokit
 ```
 
-## 🚀 Running the Program
+If you’re using a **PiCamera**, also install `picamera`:
 
 ```bash
-# Install dependencies
-uv sync
-
-# Run the program
-uv run main.py
+sudo apt install python3-picamera
 ```
 
-## 📚 Documentation
+---
 
-The project is documented using pdoc3, which creates HTML documentation from docstrings in the code.
+## Running the Program
 
-### Generating Documentation
+1. **Clone or copy** this repository to your Raspberry Pi.
+2. **Ensure** your camera is plugged in and I2C is wired to the PCA9685.
+3. **Run the main script**:
 
 ```bash
-# Generate HTML documentation
-uv run pdoc --html wavebot -o docs/
+python3 main.py
 ```
 
-### Viewing Documentation
-
-After generating the documentation, you can view it by opening the HTML files in your browser:
-
-```bash
-# If you have python installed
-python -m http.server -d docs
-
-# Or simply open the file directly
-xdg-open docs/wavebot/index.html  # Linux
-open docs/wavebot/index.html      # macOS
-start docs/wavebot/index.html     # Windows
-```
-
-### Documentation
-
-The generated documentation includes:
-
-- **API Reference**: Detailed documentation of all modules, classes, and functions
-- **Module Overview**: High-level description of each module's purpose
-- **Function Signatures**: Parameters, return types, and descriptions
-
-You can find documentation for the main components:
-
-- `camera.py`: Camera stream interface implementation
-- `config.py`: Configuration constants and logger setup
-- `servos.py`: Servo motor control and angle calculations
-- `vision.py`: Face detection and visualization functions
+Wavebot will launch a real-time window. Press **q** to exit.
 
 ---
 
-## 🎯 How It Works
+## How It Works
 
-- The camera captures a live video feed (either from PiCamera or USB camera).
-- The DNN face detection model finds faces in the frame.
-- Based on the face's position, eye servos (X/Y for each eye) move to track it.
-- The eyes reset to center if no face is detected for 5 seconds.
-- The system will automatically detect if hardware is available and fall back to a simulation mode if not.
-
----
-
-## 🧠 Servo Channel Mapping
-
-| Servo Channel | Description            |
-| ------------- | ---------------------- |
-| 0             | Left Eye – Horizontal  |
-| 1             | Left Eye – Vertical    |
-| 2             | Right Eye – Horizontal |
-| 3             | Right Eye – Vertical   |
-| 8             | Neck - Horizontal      |
-| 9             | Neck - Vertical        |
-
-All channels are defined as Enums in `config.py`.
+1. **Camera Feed**: `camera_stream()` yields frames from either PiCamera or a USB camera.
+2. **Face Detection**: `detect_faces()` uses a Haar cascade to find faces.
+3. **Tracking**: `pick_face_to_track()` chooses which face to “lock on” to if there are multiple.
+4. **Servo Control**:
+   - `update_servos(...)` adjusts the eyes/neck to follow the tracked face.
+   - If a face is detected (and it’s been at least 5 seconds since the last wave), the `wave()` function is called to move the hand servo from 0° to 90° in a smooth loop.
+5. **Timeout**: If no face is detected for 5 seconds, the servos automatically recenter.
 
 ---
 
-## ⚙️ Configuration
+## Code Overview
 
-You can adjust the following settings in `wavebot/config.py`:
+- **`main.py`**
 
-- `FRAME_WIDTH` and `FRAME_HEIGHT`: Camera resolution
-- `USE_USB_CAMERA`: Set to `True` to use a USB webcam instead of PiCamera
+  - Uses a `ThreadPoolExecutor` to do face detection without stalling servo updates.
+  - Tracks timestamps for last face detection (`last_face_time`) and last wave (`last_wave_time`).
+  - Waves if a face is seen and enough time has passed since the last wave.
 
----
+- **`vision.py`**
 
-## 🛠 Code Overview
+  - Loads a Haar cascade classifier (`haarcascade_frontalface_default.xml`).
+  - Has `detect_faces()`, `pick_face_to_track()`, and `draw_faces()` to handle face detection, tracking logic, and bounding box drawing.
 
-### `main.py`
+- **`servos.py`**
 
-- Runs the capture + processing loop
-- Calls functions from the wavebot package
-- Keeps track of time since last face detection
-- Recenters servos if no face is detected for 5 seconds
+  - Defines a fallback if hardware is unavailable.
+  - `set_servo_angle()` clamps angles, logs movements, and sets PWM duty cycles.
+  - `move_servo_gradually()` for smooth transitions between angles.
+  - `update_servos()` uses a sigmoid-based factor for smoother tracking movements.
+  - `wave()` moves the “hand” servo from 0° to 90° a few times to wave.
+  - `center_servos()` resets all servos to neutral positions.
 
-### `wavebot/servos.py`
+- **`camera.py`**
 
-- Converts angles to PWM signals
-- Functions to center or update servo positions
-- Includes graceful fallback if hardware is unavailable
-- Maintains in-memory state of servo positions
+  - Provides a unified `camera_stream()` generator that yields frames from either a USB camera (`cv2.VideoCapture`) or PiCamera.
+  - Controlled by `USE_USB_CAMERA` in `config.py`.
 
-### `wavebot/vision.py`
-
-- Loads the OpenCV face detector
-- Draws bounding boxes + grid overlay
-- Calculates servo movement based on face location
-- Shows coordinates of detected faces
-
-### `wavebot/camera.py`
-
-- Provides a unified camera stream interface
-- Supports both PiCamera and USB cameras via OpenCV
-- Configurable via settings in `config.py`
-
-### `wavebot/config.py`
-
-- Central place for frame size and channel assignments
-- Enum classes for servo channels
-- Camera selection settings
+- **`config.py`**
+  - Contains logging setup, frame size, camera selection, servo channel enumeration, and servo angle limits.
 
 ---
 
-## 📸 Model Info
+## Servo Channel Mapping
 
-The face detection model is a **Caffe-based SSD (Single Shot Detector)** trained on ResNet10.
+| Servo Channel | Purpose                     |
+| ------------- | --------------------------- |
+| 0             | Left Eye – Horizontal       |
+| 1             | Left Eye – Vertical         |
+| 2             | Right Eye – Horizontal      |
+| 3             | Right Eye – Vertical        |
+| 4             | Hand / Arm servo for waving |
+| 8             | Neck – Horizontal           |
+| 9             | Neck – Vertical             |
 
-Files are in the `wavebot/model` folder:
-
-- `deploy.prototxt`
-- `res10_300x300_ssd_iter_140000.caffemodel`
-
-This model runs **in real-time on a Pi** and is good enough for face tracking (not recognition).
+All channels and their angle limits are specified in `config.py`.
 
 ---
 
-## 🤖 Hardware Fallback
+## Configuration
 
-The system is designed to handle hardware limitations:
+You can modify these settings in `wavebot/config.py`:
 
-- If the PCA9685 hardware is unavailable, the system switches to simulation mode.
-- If the PiCamera is unavailable, it defaults to using a USB camera.
-- All hardware interactions are logged for debugging purposes.
+- **`FRAME_WIDTH`** and **`FRAME_HEIGHT`**: camera resolution
+- **`USE_USB_CAMERA`**: `False` by default to use PiCamera, set to `True` for a USB camera
+- **`SERVO_LIMITS`**: angle limits for each servo channel
+- **`logging` level**: set to `DEBUG` for more detailed logs, or `INFO` for standard logs
 
-### Note on Fallback Logic: 
-Originally, Wavebot included fallback functionality to simulate servo and camera behavior in environments without hardware. However, due to
-performance constraints on the Raspberry Pi, this logic was removed in favor of more responsive, real-time tracking. The codebase remains modular and
-can be extended to reintroduce simulation support in future iterations. This project now serves as the launch point for future capstone groups continuing
-hardware-focused development
+---
+
+## Hardware Fallback
+
+If the code detects that the PCA9685 or Adafruit ServoKit isn’t installed or isn’t available, it logs a warning and switches to a **simulation mode**:
+
+- Servo angles are recorded in an in-memory dictionary.
+- No real PWM signals are sent.
+- You can still observe logs of servo movements for testing.
+
+Similarly, if PiCamera is unavailable (e.g., you’re on a PC or a Pi without the camera module attached), the code automatically attempts to use a USB camera.
+
+---
+
+That’s it! Once you have everything set up, **Wavebot** will watch for faces, track them with its eyes, and wave every few seconds it sees someone. Enjoy tinkering, and feel free to customize further!

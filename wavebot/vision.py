@@ -1,92 +1,101 @@
 import cv2
 import numpy as np
-from typing import Callable
-from .servos import ServoController
+from typing import Callable, Optional
 from .config import FRAME_WIDTH, FRAME_HEIGHT
-from pathlib import Path
+from .servos import update_servos
 
-base_model_path = Path(__file__).parent.parent / "model"
-caffe_model_path = base_model_path / "deploy.prototxt"
-caffe_weights_path = base_model_path / "res10_300x300_ssd_iter_140000.caffemodel"
+FaceBox = tuple[int, int, int, int]
 
-model = cv2.dnn.readNetFromCaffe(
-    caffe_model_path.as_posix(), caffe_weights_path.as_posix()
-)
+tracked_face: Optional[FaceBox] = None
 
-FaceBoxList = list[tuple[int, int, int, int]]
+face_cascade = cv2.CascadeClassifier("model/haarcascade_frontalface_default.xml")
 
 
-def detect_faces(frame: np.ndarray) -> FaceBoxList:
+def detect_faces(frame: np.ndarray) -> list[FaceBox]:
     """
-    Detects faces in a frame using OpenCV's DNN model.
-    :param frame: Input image frame.
-    :return: List of bounding boxes (x, y, w, h).
+    Detects faces using a Haar cascade, replicating the behavior from Final_Code.py.
+    Returns the output of detectMultiScale (typically a numpy array of bounding boxes).
     """
-    height, width = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(frame, 1.0, (300, 300), (104, 177, 123), swapRB=True)
-    model.setInput(blob)
-    detections = model.forward()
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6)
+    if faces is None or len(faces) == 0:
+        return []
+    return list(faces)  # type: ignore
 
-    faces: FaceBoxList = []
-    for i in range(detections.shape[2]):
-        confidence: float = detections[0, 0, i, 2]
-        if confidence > 0.5:
-            x1, y1, x2, y2 = detections[0, 0, i, 3:7] * np.array(
-                [width, height, width, height]
-            )
-            faces.append((int(x1), int(y1), int(x2 - x1), int(y2 - y1)))
-    return faces
+
+def pick_face_to_track(faces: list[FaceBox]) -> Optional[FaceBox]:
+    """
+    Selects and updates a single face to track.
+    If a face was already being tracked, it prefers a face close to the previous one.
+    Otherwise, it chooses the largest face.
+    """
+    global tracked_face
+
+    if not faces:
+        tracked_face = None
+        return None
+
+    if tracked_face is None:
+        tracked_face = max(faces, key=lambda box: box[2] * box[3])
+        return tracked_face
+
+    x_t, y_t, w_t, h_t = tracked_face
+    center_t = (x_t + w_t / 2, y_t + h_t / 2)
+
+    best_match = tracked_face
+    best_distance = float("inf")
+    for x, y, w, h in faces:
+        center_current = (x + w / 2, y + h / 2)
+        distance = (
+            (center_current[0] - center_t[0]) ** 2
+            + (center_current[1] - center_t[1]) ** 2
+        ) ** 0.5
+        if distance < best_distance or (w * h > w_t * h_t):
+            best_distance = distance
+            best_match = (x, y, w, h)
+    tracked_face = best_match
+    return tracked_face
 
 
 def draw_faces(
-    controller: ServoController,
-    frame: np.ndarray,
-    faces: FaceBoxList,
-    on_face_detected: Callable[[], None],
+    frame: np.ndarray, face_box: Optional[FaceBox], on_face_detected: Callable[[], None]
 ) -> bool:
     """
-    Draws bounding boxes and centers the eyes on detected faces.
-    :param frame: Image to draw on.
-    :param faces: List of face bounding boxes.
-    :param on_face_detected: Callback when a face is found.
-    :return: True if face detected, False otherwise.
+    Draws the tracked face on the frame and updates servo positions using a smooth mapping.
+    Returns True if a face is drawn.
     """
-    if not faces:
+    if face_box is None:
         return False
+
+    x, y, w, h = face_box
+    cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+    center_x = x + w // 2
+    center_y = y + h // 2
+    cv2.circle(frame, (center_x, center_y), 2, (0, 0, 255), -1)
 
     origin_x = FRAME_WIDTH // 2
     origin_y = FRAME_HEIGHT // 2
+    offset_x = center_x - origin_x
+    offset_y = origin_y - center_y
 
-    for x, y, w, h in faces:
-        center_x = x + w // 2
-        center_y = y + h // 2
-        relative_x = center_x - origin_x
-        relative_y = origin_y - center_y
-        reversed_x = origin_x - (center_x - origin_x)
+    update_servos(-offset_x, offset_y, FRAME_WIDTH, FRAME_HEIGHT)
+    on_face_detected()
 
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-        cv2.circle(frame, (center_x, center_y), 2, (0, 0, 255), -1)
-        cv2.putText(
-            frame,
-            f"({relative_x}, {relative_y})",
-            (center_x + 5, center_y - 5),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.4,
-            (0, 0, 0),
-            1,
-        )
-
-        controller.queue_update_servos(
-            reversed_x, relative_y, FRAME_WIDTH, FRAME_HEIGHT
-        )
-        on_face_detected()
-
+    cv2.putText(
+        frame,
+        f"({offset_x}, {offset_y})",
+        (center_x + 5, center_y - 5),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.4,
+        (0, 0, 0),
+        1,
+    )
     return True
 
 
 def draw_quadrants(frame: np.ndarray) -> None:
     """
-    Draws vertical and horizontal center lines.
+    Draws horizontal and vertical center lines on the frame.
     """
     rows, cols = frame.shape[:2]
     cv2.line(frame, (0, rows // 2), (cols, rows // 2), (0, 255, 0), 1)
