@@ -58,7 +58,7 @@ el.replaceWith(d);
     Returns the output of detectMultiScale (typically a numpy array of bounding boxes).
     &#34;&#34;&#34;
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=7)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6)
     if faces is None or len(faces) == 0:
         return []
     return list(faces)  # type: ignore</code></pre>

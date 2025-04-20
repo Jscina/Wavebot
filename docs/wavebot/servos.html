@@ -57,13 +57,10 @@ el.replaceWith(d);
     Centers all servos to their default positions.
     &#34;&#34;&#34;
     logger.info(&#34;Centering servos&#34;)
-    set_servo_angle(Channel.EYE_LEFT_X, 140.0)
-    set_servo_angle(Channel.EYE_LEFT_Y, 90.0)
-    set_servo_angle(Channel.EYE_RIGHT_X, 155.0)
-    set_servo_angle(Channel.EYE_RIGHT_Y, 115.0)
-    set_servo_angle(Channel.NECK_X, 70.0)
-    set_servo_angle(Channel.NECK_Y, 75.0)
-    set_servo_angle(Channel.HAND_RIGHT, 45.0)</code></pre>
+    set_servo_angle(Channel.EYE_LEFT_X, EYE_LEFT_X_CENTER)
+    set_servo_angle(Channel.EYE_RIGHT_X, EYE_RIGHT_X_CENTER)
+    set_servo_angle(Channel.NECK_X, NECK_X_CENTER)
+    set_servo_angle(Channel.HAND_RIGHT, HAND_RIGHT_CENTER)</code></pre>
 </details>
 <div class="desc"><p>Centers all servos to their default positions.</p></div>
 </dd>
@@ -155,37 +152,31 @@ Angle is clamped based on SERVO_LIMITS and logged.</p></div>
     linear_factor = (x_val * 50.0) / width
     smooth_factor = linear_factor * sigmoid(linear_factor / 10.0)
 
-    left_eye_x = 125.0 + smooth_factor
-    right_eye_x = 130.0 + smooth_factor
-
-    # vertical_factor = (y_val * 20.0) / height
-    # left_eye_y = 110.0 - vertical_factor
-    # right_eye_y = 110.0 + vertical_factor
+    left_eye_x = EYE_LEFT_X_CENTER + smooth_factor
+    right_eye_x = EYE_RIGHT_X_CENTER + smooth_factor
 
     logger.info(
         f&#34;update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}&#34;
     )
     set_servo_angle(Channel.EYE_LEFT_X, left_eye_x)
     set_servo_angle(Channel.EYE_RIGHT_X, right_eye_x)
-    # set_servo_angle(Channel.EYE_LEFT_Y, left_eye_y)
-    # set_servo_angle(Channel.EYE_RIGHT_Y, right_eye_y)
 
-    neck_x_center = 70.0
-    # neck_y_center = 75.0
-    neck_x_diff = (x_val * 25.0) / width
-    # neck_y_diff = (y_val * 20.0) / height
+    movement_percent = min(1.0, max(-1.0, x_val / (width / 2)))
 
-    new_neck_x = (
-        neck_x_center + neck_x_diff if abs(x_val) &gt; (width // 6) else neck_x_center
-    )
-    # new_neck_y = (
-    #     neck_y_center + neck_y_diff if abs(y_val) &gt; (height // 6) else neck_y_center
-    # )
+    if movement_percent &lt; 0:
+        new_neck_x = NECK_X_CENTER + (movement_percent * (NECK_X_CENTER - SERVO_LIMITS[Channel.NECK_X.value][0]))
+    else:
+        new_neck_x = NECK_X_CENTER + (movement_percent * (SERVO_LIMITS[Channel.NECK_X.value][1] - NECK_X_CENTER))
 
-    if new_neck_x != servo_positions.get(Channel.NECK_X.value):
-        move_servo_gradually(Channel.NECK_X, new_neck_x)
-    # if new_neck_y != servo_positions.get(Channel.NECK_Y.value):
-    #    move_servo_gradually(Channel.NECK_Y, new_neck_y)</code></pre>
+    if abs(x_val) &gt; (width // 6):
+        logger.info(
+            f&#34;NECK MOVEMENT: x_val={x_val}, percent={movement_percent:.2f}, new_angle={new_neck_x:.2f}&#34;
+        )
+        if (
+            abs(new_neck_x - servo_positions.get(Channel.NECK_X.value, NECK_X_CENTER))
+            &gt; 1.0
+        ):
+            move_servo_gradually(Channel.NECK_X, new_neck_x)</code></pre>
 </details>
 <div class="desc"><p>Updates servo angles based on the x and y offsets from the frame center.
 Uses a non-linear (sigmoid) mapping for smooth adjustments.</p></div>
@@ -205,7 +196,7 @@ Uses a non-linear (sigmoid) mapping for smooth adjustments.</p></div>
     logger.info(&#34;Waving&#34;)
     if not HARDWARE_AVAILABLE:
         return
-    for _ in range(3):
+    for _ in range(2):
         move_servo_gradually(Channel.HAND_RIGHT, 0, step=5, delay=0.05)
         move_servo_gradually(Channel.HAND_RIGHT, 90, step=5, delay=0.05)</code></pre>
 </details>

@@ -63,59 +63,6 @@ el.replaceWith(d);
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="wavebot.camera_stream"><code class="name flex">
-<span>def <span class="ident">camera_stream</span></span>(<span>) ‑> Generator</span>
-</code></dt>
-<dd>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def camera_stream() -&gt; Generator:
-    &#34;&#34;&#34;
-    Yields frames from a PiCamera (if available) or a USB camera.
-    &#34;&#34;&#34;
-    if USE_USB_CAMERA or PiCamera is None:
-        logger.info(&#34;Using USB camera&#34;)
-        cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, FRAME_WIDTH)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT)
-        cap.set(cv2.CAP_PROP_FPS, 30)
-
-        if not cap.isOpened():
-            print(&#34;Could not open USB camera.&#34;, file=sys.stderr)
-            return
-
-        try:
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    break
-                yield frame
-        finally:
-            cap.release()
-    else:
-        logger.info(&#34;Using PiCamera&#34;)
-        camera = PiCamera()
-        try:
-            camera.resolution = (FRAME_WIDTH, FRAME_HEIGHT)
-            camera.framerate = 30
-            stream = PiRGBArray(camera, size=(FRAME_WIDTH, FRAME_HEIGHT))  # type: ignore
-            try:
-                for frame_data in camera.capture_continuous(
-                    stream, format=&#34;bgr&#34;, use_video_port=True
-                ):
-                    frame = frame_data.array
-                    yield frame
-                    stream.truncate(0)
-                    stream.seek(0)
-            finally:
-                stream.close()
-        finally:
-            camera.close()</code></pre>
-</details>
-<div class="desc"><p>Yields frames from a PiCamera (if available) or a USB camera.</p></div>
-</dd>
 <dt id="wavebot.center_servos"><code class="name flex">
 <span>def <span class="ident">center_servos</span></span>(<span>) ‑> None</span>
 </code></dt>
@@ -129,13 +76,10 @@ el.replaceWith(d);
     Centers all servos to their default positions.
     &#34;&#34;&#34;
     logger.info(&#34;Centering servos&#34;)
-    set_servo_angle(Channel.EYE_LEFT_X, 140.0)
-    set_servo_angle(Channel.EYE_LEFT_Y, 90.0)
-    set_servo_angle(Channel.EYE_RIGHT_X, 155.0)
-    set_servo_angle(Channel.EYE_RIGHT_Y, 115.0)
-    set_servo_angle(Channel.NECK_X, 70.0)
-    set_servo_angle(Channel.NECK_Y, 75.0)
-    set_servo_angle(Channel.HAND_RIGHT, 45.0)</code></pre>
+    set_servo_angle(Channel.EYE_LEFT_X, EYE_LEFT_X_CENTER)
+    set_servo_angle(Channel.EYE_RIGHT_X, EYE_RIGHT_X_CENTER)
+    set_servo_angle(Channel.NECK_X, NECK_X_CENTER)
+    set_servo_angle(Channel.HAND_RIGHT, HAND_RIGHT_CENTER)</code></pre>
 </details>
 <div class="desc"><p>Centers all servos to their default positions.</p></div>
 </dd>
@@ -153,7 +97,7 @@ el.replaceWith(d);
     Returns the output of detectMultiScale (typically a numpy array of bounding boxes).
     &#34;&#34;&#34;
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=7)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6)
     if faces is None or len(faces) == 0:
         return []
     return list(faces)  # type: ignore</code></pre>
@@ -315,37 +259,31 @@ Angle is clamped based on SERVO_LIMITS and logged.</p></div>
     linear_factor = (x_val * 50.0) / width
     smooth_factor = linear_factor * sigmoid(linear_factor / 10.0)
 
-    left_eye_x = 125.0 + smooth_factor
-    right_eye_x = 130.0 + smooth_factor
-
-    # vertical_factor = (y_val * 20.0) / height
-    # left_eye_y = 110.0 - vertical_factor
-    # right_eye_y = 110.0 + vertical_factor
+    left_eye_x = EYE_LEFT_X_CENTER + smooth_factor
+    right_eye_x = EYE_RIGHT_X_CENTER + smooth_factor
 
     logger.info(
         f&#34;update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}&#34;
     )
     set_servo_angle(Channel.EYE_LEFT_X, left_eye_x)
     set_servo_angle(Channel.EYE_RIGHT_X, right_eye_x)
-    # set_servo_angle(Channel.EYE_LEFT_Y, left_eye_y)
-    # set_servo_angle(Channel.EYE_RIGHT_Y, right_eye_y)
 
-    neck_x_center = 70.0
-    # neck_y_center = 75.0
-    neck_x_diff = (x_val * 25.0) / width
-    # neck_y_diff = (y_val * 20.0) / height
+    movement_percent = min(1.0, max(-1.0, x_val / (width / 2)))
 
-    new_neck_x = (
-        neck_x_center + neck_x_diff if abs(x_val) &gt; (width // 6) else neck_x_center
-    )
-    # new_neck_y = (
-    #     neck_y_center + neck_y_diff if abs(y_val) &gt; (height // 6) else neck_y_center
-    # )
+    if movement_percent &lt; 0:
+        new_neck_x = NECK_X_CENTER + (movement_percent * (NECK_X_CENTER - SERVO_LIMITS[Channel.NECK_X.value][0]))
+    else:
+        new_neck_x = NECK_X_CENTER + (movement_percent * (SERVO_LIMITS[Channel.NECK_X.value][1] - NECK_X_CENTER))
 
-    if new_neck_x != servo_positions.get(Channel.NECK_X.value):
-        move_servo_gradually(Channel.NECK_X, new_neck_x)
-    # if new_neck_y != servo_positions.get(Channel.NECK_Y.value):
-    #    move_servo_gradually(Channel.NECK_Y, new_neck_y)</code></pre>
+    if abs(x_val) &gt; (width // 6):
+        logger.info(
+            f&#34;NECK MOVEMENT: x_val={x_val}, percent={movement_percent:.2f}, new_angle={new_neck_x:.2f}&#34;
+        )
+        if (
+            abs(new_neck_x - servo_positions.get(Channel.NECK_X.value, NECK_X_CENTER))
+            &gt; 1.0
+        ):
+            move_servo_gradually(Channel.NECK_X, new_neck_x)</code></pre>
 </details>
 <div class="desc"><p>Updates servo angles based on the x and y offsets from the frame center.
 Uses a non-linear (sigmoid) mapping for smooth adjustments.</p></div>
@@ -365,7 +303,7 @@ Uses a non-linear (sigmoid) mapping for smooth adjustments.</p></div>
     logger.info(&#34;Waving&#34;)
     if not HARDWARE_AVAILABLE:
         return
-    for _ in range(3):
+    for _ in range(2):
         move_servo_gradually(Channel.HAND_RIGHT, 0, step=5, delay=0.05)
         move_servo_gradually(Channel.HAND_RIGHT, 90, step=5, delay=0.05)</code></pre>
 </details>
@@ -449,7 +387,6 @@ Uses a non-linear (sigmoid) mapping for smooth adjustments.</p></div>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="two-column">
-<li><code><a title="wavebot.camera_stream" href="#wavebot.camera_stream">camera_stream</a></code></li>
 <li><code><a title="wavebot.center_servos" href="#wavebot.center_servos">center_servos</a></code></li>
 <li><code><a title="wavebot.detect_faces" href="#wavebot.detect_faces">detect_faces</a></code></li>
 <li><code><a title="wavebot.draw_faces" href="#wavebot.draw_faces">draw_faces</a></code></li>
