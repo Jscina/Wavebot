@@ -94,33 +94,31 @@ Angles are automatically clamped to the limits in `SERVO_LIMITS`.
 ## Flowchart
 
 ```mermaid
-flowchart TD
-    Start[Program Start]
-    Init[Initialize camera and center servos]
-    Loop{Next frame available?}
-    Detect[Run face detection - threaded]
-    Pick[Select face to track]
+flowchart LR
+    Start([Start])
+    Init[Init camera & center servos]
+    Frame{Next frame?}
+    Detect[Face detection – threaded]
+    Pick[Pick face]
     Found{Face found?}
-    Track[Update servos to follow face]
-    Wave[Wave if cooldown passed]
-    Draw[Draw face box and quadrant lines]
-    Timeout{No face for 5 seconds?}
-    Center[Recenter all servos]
-    Show[Display frame]
-    Quit{User pressed Q?}
-    Exit[Exit program]
+    Track[Update servos]
+    Wave[Wave if cooldown OK]
+    Draw[Draw overlays]
+    Timeout{5 s no face?}
+    Center[Re‑center servos]
+    Quit{Q pressed?}
+    End([Exit])
 
-    Start --> Init --> Loop
-    Loop --> Detect --> Pick --> Found
-
+    Start --> Init --> Frame
+    Frame --> Detect --> Pick
+    Pick --> Found
     Found -- Yes --> Track --> Wave --> Draw --> Timeout
-    Timeout -- Yes --> Center --> Show
-    Timeout -- No --> Show
-    Show --> Quit
-    Quit -- No --> Loop
-    Quit -- Yes --> Exit
-
-    Found -- No --> Timeout
+    Found -- No  --> Timeout
+    Timeout -- Yes --> Center --> Frame
+    Timeout -- No  --> Frame
+    Frame --> Quit
+    Quit -- Yes --> End
+    Quit -- No  --> Frame
 ```
 
 ---
