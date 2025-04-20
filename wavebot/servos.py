@@ -1,14 +1,14 @@
 import time
 import math
-from .config import Channel, SERVO_LIMITS, logger
+from .config import Channel, SERVO_LIMITS, logger, EYE_LEFT_X_CENTER, EYE_RIGHT_X_CENTER, NECK_X_CENTER, HAND_RIGHT_CENTER
 
 HARDWARE_AVAILABLE = False
 
 servo_positions = {
-    Channel.EYE_LEFT_X.value: 125.0,
-    Channel.EYE_RIGHT_X.value: 125.0,
-    Channel.NECK_X.value: 70.0,
-    Channel.HAND_RIGHT.value: 45.0,
+    Channel.EYE_LEFT_X.value: EYE_LEFT_X_CENTER,
+    Channel.EYE_RIGHT_X.value: EYE_RIGHT_X_CENTER,
+    Channel.NECK_X.value: NECK_X_CENTER,
+    Channel.HAND_RIGHT.value: HAND_RIGHT_CENTER,
 }
 
 try:
@@ -80,8 +80,8 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     linear_factor = (x_val * 50.0) / width
     smooth_factor = linear_factor * sigmoid(linear_factor / 10.0)
 
-    left_eye_x = 125.0 + smooth_factor
-    right_eye_x = 125.0 + smooth_factor
+    left_eye_x = EYE_LEFT_X_CENTER + smooth_factor
+    right_eye_x = EYE_RIGHT_X_CENTER - smooth_factor
 
     logger.info(
         f"update_servos: x_val={x_val}, y_val={y_val}, smooth_factor={smooth_factor:.2f}"
@@ -89,23 +89,19 @@ def update_servos(x_val: int, y_val: int, width: int, height: int) -> None:
     set_servo_angle(Channel.EYE_LEFT_X, left_eye_x)
     set_servo_angle(Channel.EYE_RIGHT_X, right_eye_x)
 
-    neck_x_center = 70.0
-    neck_x_min = 20.0
-    neck_x_max = 110.0
-
     movement_percent = min(1.0, max(-1.0, x_val / (width / 2)))
 
     if movement_percent < 0:
-        new_neck_x = neck_x_center + (movement_percent * (neck_x_center - neck_x_min))
+        new_neck_x = NECK_X_CENTER + (movement_percent * (NECK_X_CENTER - SERVO_LIMITS[Channel.NECK_X][0]))
     else:
-        new_neck_x = neck_x_center + (movement_percent * (neck_x_max - neck_x_center))
+        new_neck_x = NECK_X_CENTER + (movement_percent * (SERVO_LIMITS[Channel.NECK_X][1] - neck_x_center))
 
     if abs(x_val) > (width // 6):
         logger.info(
             f"NECK MOVEMENT: x_val={x_val}, percent={movement_percent:.2f}, new_angle={new_neck_x:.2f}"
         )
         if (
-            abs(new_neck_x - servo_positions.get(Channel.NECK_X.value, neck_x_center))
+            abs(new_neck_x - servo_positions.get(Channel.NECK_X.value, NECK_X_CENTER))
             > 1.0
         ):
             move_servo_gradually(Channel.NECK_X, new_neck_x)
@@ -128,7 +124,7 @@ def center_servos() -> None:
     Centers all servos to their default positions.
     """
     logger.info("Centering servos")
-    set_servo_angle(Channel.EYE_LEFT_X, 125.0)
-    set_servo_angle(Channel.EYE_RIGHT_X, 125.0)
-    set_servo_angle(Channel.NECK_X, 70.0)
-    set_servo_angle(Channel.HAND_RIGHT, 45.0)
+    set_servo_angle(Channel.EYE_LEFT_X, EYE_LEFT_X_CENTER)
+    set_servo_angle(Channel.EYE_RIGHT_X, EYE_RIGHT_X_CENTER)
+    set_servo_angle(Channel.NECK_X, NECK_X_CENTER)
+    set_servo_angle(Channel.HAND_RIGHT, HAND_RIGHT_CENTER)

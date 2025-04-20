@@ -18,6 +18,11 @@ class Channel(Enum):
     HAND_RIGHT = 4
     NECK_X = 8
     NECK_Y = 9
+    
+EYE_LEFT_X_CENTER = 125.0
+EYE_RIGHT_X_CENTER = 125.0
+NECK_X_CENTER = 70.0
+HAND_RIGHT_CENTER = 45.0
 
 
 SERVO_LIMITS = {
